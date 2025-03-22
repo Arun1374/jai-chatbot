@@ -77,7 +77,7 @@ def prepare_vectorstore():
 st.set_page_config(page_title="JAI - Johnson Tile Chatbot", page_icon="🧱")
 st.markdown("""
     <h1 style='text-align: center;'>🤖 JAI — Johnson AI</h1>
-    <p style='text-align: center;'>Your smart assistant for tiles and employees</p>
+    <p style='text-align: center;'>Your smart assistant for tiles</p>
     <hr style='border:1px solid #ddd;'>
 """, unsafe_allow_html=True)
 
@@ -92,7 +92,7 @@ col1, col2 = st.columns([6, 1])
 with col2:
     if st.button("🗑️ Clear Chat"):
         st.session_state.chat_history = []
-        st.experimental_rerun()
+        st.rerun()
 
 for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
