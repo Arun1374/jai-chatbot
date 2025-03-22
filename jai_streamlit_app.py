@@ -120,8 +120,6 @@ if prompt:
         response = "Haha 😄 I’m fully committed to tiles — no time for romance!"
     elif "born" in query or "built" in query:
         response = "I was born in the H&R Johnson office in Mumbai! Built with ❤️ by Arun Gond, Reporting to Rohit Chintawar in the Digital Team."
-    elif "creator" in query or "who made you" or "who is your dad" or "who is your father" in query:
-        response = "I was proudly built by Arun Gond , he is my father ❤️. 🙌"
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
