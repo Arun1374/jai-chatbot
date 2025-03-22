@@ -75,7 +75,15 @@ def prepare_vectorstore():
 
 # === STREAMLIT UI ===
 st.set_page_config(page_title="JAI - Johnson Tile Chatbot", page_icon="🧱")
-st.markdown("<div style='text-align: center;'><img src='logo.png' width='200'></div>", unsafe_allow_html=True)
+# === EMBEDDED LOGO IN BASE64 ===
+st.markdown(
+    '''
+    <div style='text-align: center;'>
+        <img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAANkAAADdCAMAAADcUVE7AAAAyVBMVEX///8AAADt7e1XV1eAgIDg4OD5+fmWlpZubm7R0dHj4+OgoKCEhIStra2cnJw9PT3b29uOjo6VlZV2dnaIiIhISEhZWVmCgoKnp6c6Ojp5eXkYGBjAwMCAgIBbW1ue3t5nZ2dTU1OjpaZSUlLKysqHh4eSkpJQUFBmZmZGRka0tLRSUlJJSUlQUFDCwsJISEhkZGRTU1NSUlJqamowMDA0NDRl7ZlFAAAHSUlEQVR4nO2cC3uiOhCGFSGEZxERtVXYFCttr73/f3x2HGwG8zmkiRzz3e/x3zhNApEkSZIkSZIk+U7lAxuOBnHVpCCNOuXnyHD0azkk7ysUQGS6E97VvAikzq7vHFz+G7ZswM/S41lQpMgK3ms9JrsyRA2CAXa9S9aaHctLbAq+SgRUZ05I8sTb6PvMkZEUY0we6Xq3dG/vS5bLb9PC+VZ37US4lNprb9UMdrW+W/4KfZr4Klt7v7H1r3z9BfvnC/vcbzAiv7ujsYey2EpF1v1H6+lAe2dfMyka5vh1/h0r3NV3tQXmvz6Hw1Ht9V9mVfGpGe+W7D9mdfYw4V0kRYb3f6y4G/VxjzsmYFEXZti5Yr98EJzW5toydrjfg2rxdbvY+jKPbWdlnjtPNjAj94YzXmjAOp1IYP0cdFgZqnDtz4ZjL/rNklpQy3K2RnSduy9z98Bau7qzWepm7s68l85gAH/d8l5phzEfhKjOEV3ud5kO+hNDk98U5rK1xzj7/NuL4Zr8bnuc3LK1+rOjOdtNueCdf+Hz+1WpsdFcXaxQWy12n7Zb9xDhfVLd+nOwJruK17W6xW5P2jOpf8i24m4Yr2A3wLM9J2PxjRJkiRJkiRJkuTf8AfXQQtKfVe4NsAAAAASUVORK5CYII=' width='150'/>
+    </div>
+    ''',
+    unsafe_allow_html=True
+)
 st.markdown("""
     <h1 style='text-align: center;'>🤖 JAI — Johnson AI</h1>
     <p style='text-align: center;'>Your smart assistant for tiles</p>
