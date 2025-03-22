@@ -9,3 +9,4 @@ tiktoken
 pillow
 pandas
 openpyxl
+langchain-community
