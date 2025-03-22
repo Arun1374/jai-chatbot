@@ -100,6 +100,8 @@ for msg in st.session_state.chat_history:
 
 prompt = st.chat_input("Ask me anything about tiles ...")
 if prompt:
+    with st.chat_message("user"):
+        st.markdown(prompt)
     st.session_state.chat_history.append({"role": "user", "content": prompt})
     response = ""
     query = prompt.lower()
