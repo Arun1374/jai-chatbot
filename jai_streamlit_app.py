@@ -76,10 +76,6 @@ def prepare_vectorstore():
 # === STREAMLIT UI ===
 st.set_page_config(page_title="JAI - Johnson Tile Chatbot", page_icon="🧱")
 st.markdown(
-    \"\"\"<div style='text-align:center;'><img src='https://github.com/Arun1374/jai-chatbot/blob/main/logo.png' width='150'></div>\"\"\",
-    unsafe_allow_html=True
-)
-st.markdown(
     "<div style='text-align: center;'><img src='logo.png' width='50'></div>",
     unsafe_allow_html=True
 )
