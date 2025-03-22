@@ -75,10 +75,6 @@ def prepare_vectorstore():
 
 # === STREAMLIT UI ===
 st.set_page_config(page_title="JAI - Johnson Tile Chatbot", page_icon="🧱")
-st.markdown(
-    "<div style='text-align: center;'><img src='logo.png' width='50'></div>",
-    unsafe_allow_html=True
-)
 st.markdown("""
     <h1 style='text-align: center;'>🤖 JAI — Johnson AI</h1>
     <p style='text-align: center;'>Your smart assistant for tiles</p>
