@@ -76,7 +76,7 @@ def prepare_vectorstore():
 # === STREAMLIT UI ===
 st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
 st.markdown("""
-    <h1 style='text-align: center;'>🤖 JAI — Johnson AI</h1>
+    <h1 style='text-align: center;'>🤖 JAI — (Johnson AI)</h1>
     <p style='text-align: center;'>Your smart assistant for tiles</p>
     <hr style='border:1px solid #ddd;'>
 """, unsafe_allow_html=True)
