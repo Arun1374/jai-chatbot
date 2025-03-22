@@ -118,10 +118,10 @@ if prompt:
         response = "I can help you choose the right Johnson tile, explain technical specs, and answer about employees if you ask!"
     elif "girlfriend" in query:
         response = "Haha 😄 I’m fully committed to tiles — no time for romance!"
-    elif "born" in query or "built" in query:
-        response = "I was born in the H&R Johnson office in Mumbai! Built with ❤️ by Arunkumar Gond, who works under Rohit Chintawar in the Digital Team."
-    elif "creator" in query or "who made you" in query:
-        response = "I was proudly built by Arunkumar Gond and the amazing Digital Team under Rohit Chintawar at H&R Johnson. 🙌"
+    elif "born" in query or "built" or "who is your father" in query:
+        response = "I was born in the H&R Johnson office in Mumbai! Built with ❤️ by Arun Gond, Reporting to Rohit Chintawar in the Digital Team."
+    elif "creator" in query or "who made you" or "who is your dad" in query:
+        response = "I was proudly built by Arun Gond and the amazing Digital Team under Rohit Chintawar at H&R Johnson. 🙌"
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
