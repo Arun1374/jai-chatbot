@@ -75,6 +75,7 @@ def prepare_vectorstore():
 
 # === STREAMLIT UI ===
 st.set_page_config(page_title="JAI - Johnson Tile Chatbot", page_icon="🧱")
+st.image("logo.png", width=250)
 st.markdown("""
     <h1 style='text-align: center;'>🤖 JAI — Johnson AI</h1>
     <p style='text-align: center;'>Your smart assistant for tiles</p>
