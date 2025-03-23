@@ -5,9 +5,9 @@ import pandas as pd
 import streamlit as st
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
-from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
-from langchain.chains import RetrievalQA
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.chains import RetrievalQAWithSourcesChain
 from langchain.schema import Document
 
 # === CONFIGURATION ===
@@ -59,14 +59,21 @@ def load_employee_data(excel_path):
     employee_docs = []
     for _, row in df.iterrows():
         text = f"{row['Member Name']} (Employee ID: {row['Member ID']}) works as {row['Designation']} and is based in {row['Location']}."
-        employee_docs.append(Document(page_content=text))
+        employee_docs.append(Document(page_content=text, metadata={"source": "employee_excel"}))
     return employee_docs
 
 def prepare_vectorstore():
     loader = PyPDFLoader(PDF_PATH)
     documents = loader.load()
-    splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=800,
+        chunk_overlap=100,
+        separators=["\n\n", "\n", ".", " "]
+    )
     pdf_docs = splitter.split_documents(documents)
+    for doc in pdf_docs:
+        doc.metadata = {"source": "tile_pdf"}
+
     emp_docs = load_employee_data(EXCEL_PATH)
     all_docs = pdf_docs + emp_docs
     embeddings = OpenAIEmbeddings(model="text-embedding-ada-002")
@@ -76,14 +83,18 @@ def prepare_vectorstore():
 # === STREAMLIT UI ===
 st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
 st.markdown("""
-    <h1 style='text-align: center;'>🤖 JAI — (Johnson AI)</h1>
-    <h2 style='text-align: center;'>Your smart assistant for tiles</h2>
+    <h1 style='text-align: center;'>🤖 JAI — Johnson AI</h1>
+    <p style='text-align: center;'>Your smart assistant for tiles</p>
     <hr style='border:1px solid #ddd;'>
 """, unsafe_allow_html=True)
 
 extract_images_from_pdf(PDF_PATH)
 vectorstore = prepare_vectorstore()
-qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(model_name="gpt-3.5-turbo"), chain_type="stuff", retriever=vectorstore.as_retriever())
+qa = RetrievalQAWithSourcesChain.from_chain_type(
+    llm=ChatOpenAI(model_name="gpt-3.5-turbo"),
+    chain_type="stuff",
+    retriever=vectorstore.as_retriever()
+)
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -102,6 +113,7 @@ prompt = st.chat_input("Ask me anything about tiles ...")
 if prompt:
     with st.chat_message("user"):
         st.markdown(prompt)
+
     st.session_state.chat_history.append({"role": "user", "content": prompt})
     response = ""
     query = prompt.lower()
@@ -119,17 +131,25 @@ if prompt:
     elif "girlfriend" in query:
         response = "Haha 😄 I’m fully committed to tiles — no time for romance!"
     elif "born" in query or "built" in query:
-        response = "I was born in the H&R Johnson office in Mumbai! Built with ❤️ by Arun Gond, Reporting to Rohit Chintawar in the Digital Team."
+        response = "I was born in the H&R Johnson office in Mumbai! Built with ❤️ by Arunkumar Gond, who works under Rohit Chintawar in the Digital Team."
+    elif "creator" in query or "who made you" in query:
+        response = "I was proudly built by Arunkumar Gond and the amazing Digital Team under Rohit Chintawar at H&R Johnson. 🙌"
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
-        response = qa.run(prompt)
+        result = qa({"query": prompt})
+        response = result.get("answer", "Sorry, I couldn't find an answer.")
+
+        image_found = False
         for topic, page in topic_page_map.items():
             if topic in query:
                 for file in os.listdir(IMAGE_FOLDER):
                     if file.startswith(f"page_{page}_img"):
                         st.image(os.path.join(IMAGE_FOLDER, file), caption=f"Example of {topic.title()} Tile")
+                        image_found = True
                         break
+                if not image_found:
+                    st.warning(f"No tile image found for '{topic.title()}' in the PDF.")
                 break
 
     st.session_state.chat_history.append({"role": "assistant", "content": response})
