@@ -186,7 +186,13 @@ if prompt:
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
-        response = agent.run(prompt)
+        rich_prompt = (
+    f"{prompt}
+
+"
+    "Respond in detailed, well-formatted HTML. Use headings, bullet points, and make it look like a Johnson Tiles brochure. Avoid short answers."
+)
+response = agent.run(rich_prompt)
 
         for topic, page in topic_page_map.items():
             if topic in query:
