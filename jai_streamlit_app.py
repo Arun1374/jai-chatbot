@@ -137,7 +137,7 @@ if prompt:
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
-        result = qa({"query": prompt})
+        result = qa({"question": prompt})
         response = result.get("answer", "Sorry, I couldn't find an answer.")
 
         image_found = False
