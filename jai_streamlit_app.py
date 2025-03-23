@@ -7,7 +7,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains import RetrievalQAWithSourcesChain
+from langchain.chains import RetrievalQA
 from langchain.schema import Document
 
 # === CONFIGURATION ===
@@ -90,7 +90,7 @@ st.markdown("""
 
 extract_images_from_pdf(PDF_PATH)
 vectorstore = prepare_vectorstore()
-qa = RetrievalQAWithSourcesChain.from_chain_type(
+qa = RetrievalQA.from_chain_type(
     llm=ChatOpenAI(model_name="gpt-3.5-turbo"),
     chain_type="stuff",
     retriever=vectorstore.as_retriever()
@@ -137,8 +137,7 @@ if prompt:
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
-        result = qa({"question": prompt})
-        response = result.get("answer", "Sorry, I couldn't find an answer.")
+        response = qa.run(prompt)
 
         image_found = False
         for topic, page in topic_page_map.items():
