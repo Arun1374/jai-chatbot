@@ -3,14 +3,12 @@ import random
 import fitz  # PyMuPDF
 import pandas as pd
 import streamlit as st
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import PyPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains import ConversationalRetrievalChain
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain.text_splitter import CharacterTextSplitter
+from langchain.chains import RetrievalQA
 from langchain.schema import Document
-from langchain.agents import Tool, initialize_agent, AgentType
-from langchain.memory import ConversationBufferMemory
 
 # === CONFIGURATION ===
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
@@ -18,7 +16,7 @@ PDF_PATH = "Johnson-Tile-Guide-2023.pdf"
 EXCEL_PATH = "HRJ DATA.xlsx"
 IMAGE_FOLDER = "extracted_images"
 
-# === TILE-TOPIC TO IMAGE PAGE MAP ===
+# === TILE TOPICS TO IMAGE PAGES ===
 topic_page_map = {
     "bathroom": 14,
     "parking": 22,
@@ -29,6 +27,7 @@ topic_page_map = {
     "industrial": 25
 }
 
+# === TILE SONGS ===
 TILE_SONGS = [
     "🎵 I'm a tile and I shine so bright, step on me, your room's just right!",
     "🎶 Glossy, matte, or slip-resistant too, Johnson Tiles are made for you!",
@@ -37,7 +36,7 @@ TILE_SONGS = [
     "🎵 From your kitchen to your bath, I pave the perfect tiled path!"
 ]
 
-# === FUNCTIONS ===
+# === EXTRACT IMAGES ===
 def extract_images_from_pdf(pdf_path):
     if not os.path.exists(IMAGE_FOLDER):
         os.makedirs(IMAGE_FOLDER)
@@ -56,39 +55,29 @@ def extract_images_from_pdf(pdf_path):
             with open(os.path.join(IMAGE_FOLDER, filename), "wb") as f:
                 f.write(image_bytes)
 
+# === LOAD EMPLOYEE DATA ===
 def load_employee_data(excel_path):
     df = pd.read_excel(excel_path)
     employee_docs = []
     for _, row in df.iterrows():
         text = f"{row['Member Name']} (Employee ID: {row['Member ID']}) works as {row['Designation']} and is based in {row['Location']}."
-        employee_docs.append(Document(page_content=text, metadata={"source": "employee_excel"}))
+        employee_docs.append(Document(page_content=text))
     return employee_docs
 
+# === PREPARE VECTORSTORE ===
 def prepare_vectorstore():
     loader = PyPDFLoader(PDF_PATH)
     documents = loader.load()
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=800,
-        chunk_overlap=100,
-        separators=["\n\n", "\n", ".", " "]
-    )
+    splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     pdf_docs = splitter.split_documents(documents)
-    for doc in pdf_docs:
-        doc.metadata = {"source": "tile_pdf"}
-
     emp_docs = load_employee_data(EXCEL_PATH)
     all_docs = pdf_docs + emp_docs
     embeddings = OpenAIEmbeddings(model="text-embedding-ada-002")
     vectorstore = FAISS.from_documents(all_docs, embeddings)
     return vectorstore
 
-def search_johnson_docs(query):
-    retriever = vectorstore.as_retriever()
-    qa = ConversationalRetrievalChain.from_llm(ChatOpenAI(model_name="gpt-3.5-turbo"), retriever=retriever)
-    return qa.run({"question": query, "chat_history": []})
-
 # === STREAMLIT UI ===
-st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
+st.set_page_config(page_title="JAI - Johnson Tile Chatbot", page_icon="🧱")
 st.markdown("""
     <h1 style='text-align: center;'>🤖 JAI — Johnson AI</h1>
     <p style='text-align: center;'>Your smart assistant for tiles</p>
@@ -97,51 +86,10 @@ st.markdown("""
 
 extract_images_from_pdf(PDF_PATH)
 vectorstore = prepare_vectorstore()
-
-memory = ConversationBufferMemory(memory_key="chat_history")
-tools = [
-    Tool(
-        name="JohnsonDocs",
-        func=search_johnson_docs,
-        description="Answers only questions related to Johnson Tiles and HRJ employees"
-    )
-]
-
-agent = initialize_agent(
-    tools=tools,
+qa = RetrievalQA.from_chain_type(
     llm=ChatOpenAI(model_name="gpt-3.5-turbo"),
-    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-    memory=memory,
-    verbose=False,
-    handle_parsing_errors=True,
-    agent_kwargs={
-        "prefix": (
-        "You are JAI — an expert assistant at Johnson Tiles.
-"
-        "You ONLY answer questions about Johnson Tiles or its employees.
-"
-        "Always respond using professional tone and HTML formatting.
-"
-        "For example:
-"
-        "- Use <h3> for titles
-"
-        "- Use <ul><li> for bullet points
-"
-        "- Use <br> between points or paragraphs
-"
-        "- Highlight product names using <b> tags
-"
-        "Always provide clear, structured, detailed, and visually appealing responses.
-"
-        "NEVER return a plain paragraph. Make your answer look like a brochure."
-    )
-    }
-),
-    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-    memory=memory,
-    verbose=False,
-    handle_parsing_errors=True
+    chain_type="stuff",
+    retriever=vectorstore.as_retriever()
 )
 
 if "chat_history" not in st.session_state:
@@ -151,20 +99,15 @@ col1, col2 = st.columns([6, 1])
 with col2:
     if st.button("🗑️ Clear Chat"):
         st.session_state.chat_history = []
-        memory.clear()
         st.rerun()
 
 for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"], unsafe_allow_html=True)
 
-prompt = st.chat_input("Ask me anything about Johnson Tiles...")
+prompt = st.chat_input("Ask me anything about tiles ...")
 if prompt:
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
     st.session_state.chat_history.append({"role": "user", "content": prompt})
-    response = ""
     query = prompt.lower()
 
     if query in ["hi", "hello", "hi jai", "hello jai"]:
@@ -186,13 +129,8 @@ if prompt:
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
-        rich_prompt = (
-    f"{prompt}
-
-"
-    "Respond in detailed, well-formatted HTML. Use headings, bullet points, and make it look like a Johnson Tiles brochure. Avoid short answers."
-)
-response = agent.run(rich_prompt)
+        result = qa.invoke({"query": prompt})
+        response = result["result"]
 
         for topic, page in topic_page_map.items():
             if topic in query:
