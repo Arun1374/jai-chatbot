@@ -113,6 +113,22 @@ agent = initialize_agent(
     agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
     memory=memory,
     verbose=False,
+    handle_parsing_errors=True,
+    agent_kwargs={
+        "prefix": (
+            "You are JAI — a friendly and expert assistant from Johnson Tiles.
+"
+            "Always respond with detailed, professional, and well-formatted answers using HTML.
+"
+            "Use headings, bullet points, and bold text where needed.
+"
+            "Never answer with short or vague replies — always give clarity and depth."
+        )
+    }
+),
+    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+    memory=memory,
+    verbose=False,
     handle_parsing_errors=True
 )
 
