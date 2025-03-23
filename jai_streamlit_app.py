@@ -3,20 +3,20 @@ import random
 import fitz  # PyMuPDF
 import pandas as pd
 import streamlit as st
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.chains import RetrievalQA
 from langchain.schema import Document
 
-# === CONFIG ===
+# === CONFIGURATION ===
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 PDF_PATH = "Johnson-Tile-Guide-2023.pdf"
 EXCEL_PATH = "HRJ DATA.xlsx"
 IMAGE_FOLDER = "extracted_images"
 
-# === TOPIC TO PAGE ===
+# === TILE-TOPIC TO IMAGE PAGE MAP ===
 topic_page_map = {
     "bathroom": 14,
     "parking": 22,
@@ -35,7 +35,7 @@ TILE_SONGS = [
     "🎵 From your kitchen to your bath, I pave the perfect tiled path!"
 ]
 
-# === PDF IMAGE EXTRACTION ===
+# === FUNCTIONS ===
 def extract_images_from_pdf(pdf_path):
     if not os.path.exists(IMAGE_FOLDER):
         os.makedirs(IMAGE_FOLDER)
@@ -54,7 +54,6 @@ def extract_images_from_pdf(pdf_path):
             with open(os.path.join(IMAGE_FOLDER, filename), "wb") as f:
                 f.write(image_bytes)
 
-# === LOAD EMPLOYEES ===
 def load_employee_data(excel_path):
     df = pd.read_excel(excel_path)
     employee_docs = []
@@ -63,7 +62,6 @@ def load_employee_data(excel_path):
         employee_docs.append(Document(page_content=text))
     return employee_docs
 
-# === VECTORSTORE ===
 def prepare_vectorstore():
     loader = PyPDFLoader(PDF_PATH)
     documents = loader.load()
@@ -72,23 +70,20 @@ def prepare_vectorstore():
     emp_docs = load_employee_data(EXCEL_PATH)
     all_docs = pdf_docs + emp_docs
     embeddings = OpenAIEmbeddings(model="text-embedding-ada-002")
-    return FAISS.from_documents(all_docs, embeddings)
+    vectorstore = FAISS.from_documents(all_docs, embeddings)
+    return vectorstore
 
 # === STREAMLIT UI ===
-st.set_page_config(page_title="JAI – Johnson AI", page_icon="🧱")
+st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
 st.markdown("""
-    <h1 style='text-align: center;'>🤖 <b>JAI — Johnson AI</b></h1>
+    <h1 style='text-align: center;'>🤖 JAI — Johnson AI</h1>
     <p style='text-align: center;'>Your smart assistant for tiles</p>
     <hr style='border:1px solid #ddd;'>
 """, unsafe_allow_html=True)
 
 extract_images_from_pdf(PDF_PATH)
 vectorstore = prepare_vectorstore()
-qa = RetrievalQA.from_chain_type(
-    llm=ChatOpenAI(model_name="gpt-3.5-turbo"),
-    chain_type="stuff",
-    retriever=vectorstore.as_retriever()
-)
+qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(model_name="gpt-3.5-turbo"), chain_type="stuff", retriever=vectorstore.as_retriever())
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -101,16 +96,20 @@ with col2:
 
 for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
-        st.markdown(msg["content"], unsafe_allow_html=True)
+        if msg.get("use_html"):
+            st.markdown(msg["content"], unsafe_allow_html=True)
+        else:
+            st.markdown(msg["content"])
 
 prompt = st.chat_input("Ask me anything about tiles ...")
 if prompt:
-    query = prompt.lower()
     st.session_state.chat_history.append({"role": "user", "content": prompt})
+    query = prompt.lower()
+    use_html = True
 
-    # Pre-defined friendly responses
     if query in ["hi", "hello", "hi jai", "hello jai"]:
         response = "Hello! I'm JAI 😊 — happy to help you with tile advice. What would you like to know?"
+        use_html = False
     elif "your name" in query:
         response = "My name is <b>JAI — Johnson AI</b> 🤖. I'm your smart assistant for all things tiles!"
     elif "who are you" in query:
@@ -118,25 +117,19 @@ if prompt:
     elif "how are you" in query:
         response = "I'm all tiled up and ready to assist you! 😄 What can I help you with today?"
     elif "what can you do" in query:
-        response = "I can help you choose the right Johnson tile, explain technical specs, and answer about employees if you ask!"
+        response = "I can help you choose the right <b>Johnson tile</b>, explain <i>technical specs</i>, and answer about employees <u>if you ask!</u>"
     elif "girlfriend" in query:
-        response = "Haha 😄 I’m fully committed to tiles — no time for romance!"
+        response = "Haha 😄 I’m fully committed to <b>tiles</b> — no time for romance!"
     elif "born" in query or "built" in query:
-        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>, who works under <b>Rohit Chintawar</b> in the Digital Team."
+        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>, under <b>Rohit Chintawar</b>."
     elif "creator" in query or "who made you" in query:
         response = "I was proudly built by <b>Arunkumar Gond</b> and the amazing <b>Digital Team</b> under <b>Rohit Chintawar</b> at H&R Johnson. 🙌"
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
+        use_html = False
     else:
-        rich_prompt = f"""
-You are JAI, a helpful assistant focused only on Johnson Tiles and HRJ employees.
-Always answer in HTML or Markdown with rich formatting:
-- Use <b>bold</b> for tile names and recommendations
-- Use bullet points when listing options
-- Add <br> for line breaks if needed
-
-Question: {prompt}
-"""
+        rich_prompt = f"Please provide a rich and well-formatted (with HTML) answer to the following Johnson Tiles-related question:
+        \n\n{prompt}\n\nFocus only on Johnson Tiles-related content."
         response = qa.run(rich_prompt)
 
         for topic, page in topic_page_map.items():
@@ -147,6 +140,9 @@ Question: {prompt}
                         break
                 break
 
-    st.session_state.chat_history.append({"role": "assistant", "content": response})
+    st.session_state.chat_history.append({"role": "assistant", "content": response, "use_html": use_html})
     with st.chat_message("assistant"):
-        st.markdown(response, unsafe_allow_html=True)
+        if use_html:
+            st.markdown(response, unsafe_allow_html=True)
+        else:
+            st.markdown(response)
