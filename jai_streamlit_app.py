@@ -7,8 +7,10 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains import RetrievalQA
+from langchain.chains import ConversationalRetrievalChain
 from langchain.schema import Document
+from langchain.agents import Tool, initialize_agent, AgentType
+from langchain.memory import ConversationBufferMemory
 
 # === CONFIGURATION ===
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
@@ -80,6 +82,11 @@ def prepare_vectorstore():
     vectorstore = FAISS.from_documents(all_docs, embeddings)
     return vectorstore
 
+def search_johnson_docs(query):
+    retriever = vectorstore.as_retriever()
+    qa = ConversationalRetrievalChain.from_llm(ChatOpenAI(model_name="gpt-3.5-turbo"), retriever=retriever)
+    return qa.run({"question": query, "chat_history": []})
+
 # === STREAMLIT UI ===
 st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
 st.markdown("""
@@ -90,10 +97,22 @@ st.markdown("""
 
 extract_images_from_pdf(PDF_PATH)
 vectorstore = prepare_vectorstore()
-qa = RetrievalQA.from_chain_type(
+
+memory = ConversationBufferMemory(memory_key="chat_history")
+tools = [
+    Tool(
+        name="JohnsonDocs",
+        func=search_johnson_docs,
+        description="Answers only questions related to Johnson Tiles and HRJ employees"
+    )
+]
+
+agent = initialize_agent(
+    tools=tools,
     llm=ChatOpenAI(model_name="gpt-3.5-turbo"),
-    chain_type="stuff",
-    retriever=vectorstore.as_retriever()
+    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+    memory=memory,
+    verbose=False
 )
 
 if "chat_history" not in st.session_state:
@@ -103,13 +122,14 @@ col1, col2 = st.columns([6, 1])
 with col2:
     if st.button("🗑️ Clear Chat"):
         st.session_state.chat_history = []
+        memory.clear()
         st.rerun()
 
 for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+        st.markdown(msg["content"], unsafe_allow_html=True)
 
-prompt = st.chat_input("Ask me anything about tiles ...")
+prompt = st.chat_input("Ask me anything about Johnson Tiles...")
 if prompt:
     with st.chat_message("user"):
         st.markdown(prompt)
@@ -121,9 +141,9 @@ if prompt:
     if query in ["hi", "hello", "hi jai", "hello jai"]:
         response = "Hello! I'm JAI 😊 — happy to help you with tile advice. What would you like to know?"
     elif "your name" in query:
-        response = "My name is JAI — Johnson AI 🤖. I'm your smart assistant for all things tiles!"
+        response = "My name is <b>JAI — Johnson AI</b> 🤖. I'm your smart assistant for all things tiles!"
     elif "who are you" in query:
-        response = "I'm JAI — your virtual tile expert, built to help you with Johnson products."
+        response = "I'm <b>JAI</b> — your virtual tile expert, built to help you with <b>Johnson products only</b>."
     elif "how are you" in query:
         response = "I'm all tiled up and ready to assist you! 😄 What can I help you with today?"
     elif "what can you do" in query:
@@ -131,26 +151,22 @@ if prompt:
     elif "girlfriend" in query:
         response = "Haha 😄 I’m fully committed to tiles — no time for romance!"
     elif "born" in query or "built" in query:
-        response = "I was born in the H&R Johnson office in Mumbai! Built with ❤️ by Arunkumar Gond, who works under Rohit Chintawar in the Digital Team."
+        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>, who works under <b>Rohit Chintawar</b> in the Digital Team."
     elif "creator" in query or "who made you" in query:
-        response = "I was proudly built by Arunkumar Gond and the amazing Digital Team under Rohit Chintawar at H&R Johnson. 🙌"
+        response = "I was proudly built by <b>Arunkumar Gond</b> and the amazing <b>Digital Team</b> under <b>Rohit Chintawar</b> at H&R Johnson. 🙌"
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
-        response = qa.run(prompt)
+        response = agent.run(prompt)
 
-        image_found = False
         for topic, page in topic_page_map.items():
             if topic in query:
                 for file in os.listdir(IMAGE_FOLDER):
                     if file.startswith(f"page_{page}_img"):
                         st.image(os.path.join(IMAGE_FOLDER, file), caption=f"Example of {topic.title()} Tile")
-                        image_found = True
                         break
-                if not image_found:
-                    st.warning(f"No tile image found for '{topic.title()}' in the PDF.")
                 break
 
     st.session_state.chat_history.append({"role": "assistant", "content": response})
     with st.chat_message("assistant"):
-        st.markdown(response)
+        st.markdown(response, unsafe_allow_html=True)
