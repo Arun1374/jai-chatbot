@@ -3,11 +3,12 @@ import random
 import fitz  # PyMuPDF
 import pandas as pd
 import streamlit as st
-from langchain_community.vectorstores import FAISS
-from langchain_community.document_loaders import PyPDFLoader
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import CharacterTextSplitter
+from langchain_community.document_loaders import PyPDFLoader
 from langchain.chains import RetrievalQA
+from langchain.prompts import PromptTemplate
 from langchain.schema import Document
 
 # === CONFIGURATION ===
@@ -16,7 +17,7 @@ PDF_PATH = "Johnson-Tile-Guide-2023.pdf"
 EXCEL_PATH = "HRJ DATA.xlsx"
 IMAGE_FOLDER = "extracted_images"
 
-# === TILE TOPICS TO IMAGE PAGES ===
+# === TILE-TOPIC TO IMAGE PAGE MAP ===
 topic_page_map = {
     "bathroom": 14,
     "parking": 22,
@@ -27,7 +28,6 @@ topic_page_map = {
     "industrial": 25
 }
 
-# === TILE SONGS ===
 TILE_SONGS = [
     "🎵 I'm a tile and I shine so bright, step on me, your room's just right!",
     "🎶 Glossy, matte, or slip-resistant too, Johnson Tiles are made for you!",
@@ -36,7 +36,7 @@ TILE_SONGS = [
     "🎵 From your kitchen to your bath, I pave the perfect tiled path!"
 ]
 
-# === EXTRACT IMAGES ===
+# === FUNCTIONS ===
 def extract_images_from_pdf(pdf_path):
     if not os.path.exists(IMAGE_FOLDER):
         os.makedirs(IMAGE_FOLDER)
@@ -55,7 +55,6 @@ def extract_images_from_pdf(pdf_path):
             with open(os.path.join(IMAGE_FOLDER, filename), "wb") as f:
                 f.write(image_bytes)
 
-# === LOAD EMPLOYEE DATA ===
 def load_employee_data(excel_path):
     df = pd.read_excel(excel_path)
     employee_docs = []
@@ -64,7 +63,6 @@ def load_employee_data(excel_path):
         employee_docs.append(Document(page_content=text))
     return employee_docs
 
-# === PREPARE VECTORSTORE ===
 def prepare_vectorstore():
     loader = PyPDFLoader(PDF_PATH)
     documents = loader.load()
@@ -76,8 +74,21 @@ def prepare_vectorstore():
     vectorstore = FAISS.from_documents(all_docs, embeddings)
     return vectorstore
 
+# === PROMPT TEMPLATE ===
+CUSTOM_PROMPT = PromptTemplate.from_template("""
+You are JAI – Johnson AI, the official tile expert for H&R Johnson India.
+Answer the following user query in a rich, informative, and well-formatted way using Markdown or HTML.
+Make sure answers are:
+- Based only on the documents provided
+- Organized with bullet points, headers, and spacing
+- Easy to understand for customers or employees
+
+Query:
+{query}
+""")
+
 # === STREAMLIT UI ===
-st.set_page_config(page_title="JAI - Johnson Tile Chatbot", page_icon="🧱")
+st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
 st.markdown("""
     <h1 style='text-align: center;'>🤖 JAI — Johnson AI</h1>
     <p style='text-align: center;'>Your smart assistant for tiles</p>
@@ -89,7 +100,8 @@ vectorstore = prepare_vectorstore()
 qa = RetrievalQA.from_chain_type(
     llm=ChatOpenAI(model_name="gpt-3.5-turbo"),
     chain_type="stuff",
-    retriever=vectorstore.as_retriever()
+    retriever=vectorstore.as_retriever(),
+    chain_type_kwargs={"prompt": CUSTOM_PROMPT}
 )
 
 if "chat_history" not in st.session_state:
@@ -105,7 +117,7 @@ for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"], unsafe_allow_html=True)
 
-prompt = st.chat_input("Ask me anything about tiles ...")
+prompt = st.chat_input("Ask me anything about Johnson Tiles or HRJ employees...")
 if prompt:
     st.session_state.chat_history.append({"role": "user", "content": prompt})
     query = prompt.lower()
@@ -129,9 +141,7 @@ if prompt:
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
-        result = qa.invoke({"query": prompt})
-        response = result["result"]
-
+        response = qa.invoke({"query": prompt})["result"]
         for topic, page in topic_page_map.items():
             if topic in query:
                 for file in os.listdir(IMAGE_FOLDER):
