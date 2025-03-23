@@ -3,21 +3,20 @@ import random
 import fitz  # PyMuPDF
 import pandas as pd
 import streamlit as st
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
 from langchain.schema import Document
 
-# === CONFIGURATION ===
+# === CONFIG ===
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 PDF_PATH = "Johnson-Tile-Guide-2023.pdf"
 EXCEL_PATH = "HRJ DATA.xlsx"
 IMAGE_FOLDER = "extracted_images"
 
-# === TILE-TOPIC TO IMAGE PAGE MAP ===
+# === TOPIC TO PAGE ===
 topic_page_map = {
     "bathroom": 14,
     "parking": 22,
@@ -36,7 +35,7 @@ TILE_SONGS = [
     "🎵 From your kitchen to your bath, I pave the perfect tiled path!"
 ]
 
-# === FUNCTIONS ===
+# === PDF IMAGE EXTRACTION ===
 def extract_images_from_pdf(pdf_path):
     if not os.path.exists(IMAGE_FOLDER):
         os.makedirs(IMAGE_FOLDER)
@@ -55,6 +54,7 @@ def extract_images_from_pdf(pdf_path):
             with open(os.path.join(IMAGE_FOLDER, filename), "wb") as f:
                 f.write(image_bytes)
 
+# === LOAD EMPLOYEES ===
 def load_employee_data(excel_path):
     df = pd.read_excel(excel_path)
     employee_docs = []
@@ -63,6 +63,7 @@ def load_employee_data(excel_path):
         employee_docs.append(Document(page_content=text))
     return employee_docs
 
+# === VECTORSTORE ===
 def prepare_vectorstore():
     loader = PyPDFLoader(PDF_PATH)
     documents = loader.load()
@@ -71,26 +72,12 @@ def prepare_vectorstore():
     emp_docs = load_employee_data(EXCEL_PATH)
     all_docs = pdf_docs + emp_docs
     embeddings = OpenAIEmbeddings(model="text-embedding-ada-002")
-    vectorstore = FAISS.from_documents(all_docs, embeddings)
-    return vectorstore
-
-# === PROMPT TEMPLATE ===
-CUSTOM_PROMPT = PromptTemplate.from_template("""
-You are JAI – Johnson AI, the official tile expert for H&R Johnson India.
-Answer the following user query in a rich, informative, and well-formatted way using Markdown or HTML.
-Make sure answers are:
-- Based only on the documents provided
-- Organized with bullet points, headers, and spacing
-- Easy to understand for customers or employees
-
-Query:
-{query}
-""")
+    return FAISS.from_documents(all_docs, embeddings)
 
 # === STREAMLIT UI ===
-st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
+st.set_page_config(page_title="JAI – Johnson AI", page_icon="🧱")
 st.markdown("""
-    <h1 style='text-align: center;'>🤖 JAI — Johnson AI</h1>
+    <h1 style='text-align: center;'>🤖 <b>JAI — Johnson AI</b></h1>
     <p style='text-align: center;'>Your smart assistant for tiles</p>
     <hr style='border:1px solid #ddd;'>
 """, unsafe_allow_html=True)
@@ -100,8 +87,7 @@ vectorstore = prepare_vectorstore()
 qa = RetrievalQA.from_chain_type(
     llm=ChatOpenAI(model_name="gpt-3.5-turbo"),
     chain_type="stuff",
-    retriever=vectorstore.as_retriever(),
-    chain_type_kwargs={"prompt": CUSTOM_PROMPT}
+    retriever=vectorstore.as_retriever()
 )
 
 if "chat_history" not in st.session_state:
@@ -117,11 +103,12 @@ for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"], unsafe_allow_html=True)
 
-prompt = st.chat_input("Ask me anything about Johnson Tiles or HRJ employees...")
+prompt = st.chat_input("Ask me anything about tiles ...")
 if prompt:
-    st.session_state.chat_history.append({"role": "user", "content": prompt})
     query = prompt.lower()
+    st.session_state.chat_history.append({"role": "user", "content": prompt})
 
+    # Pre-defined friendly responses
     if query in ["hi", "hello", "hi jai", "hello jai"]:
         response = "Hello! I'm JAI 😊 — happy to help you with tile advice. What would you like to know?"
     elif "your name" in query:
@@ -141,7 +128,17 @@ if prompt:
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
-        response = qa.invoke({"query": prompt})["result"]
+        rich_prompt = f"""
+You are JAI, a helpful assistant focused only on Johnson Tiles and HRJ employees.
+Always answer in HTML or Markdown with rich formatting:
+- Use <b>bold</b> for tile names and recommendations
+- Use bullet points when listing options
+- Add <br> for line breaks if needed
+
+Question: {prompt}
+"""
+        response = qa.run(rich_prompt)
+
         for topic, page in topic_page_map.items():
             if topic in query:
                 for file in os.listdir(IMAGE_FOLDER):
