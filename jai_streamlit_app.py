@@ -112,7 +112,8 @@ agent = initialize_agent(
     llm=ChatOpenAI(model_name="gpt-3.5-turbo"),
     agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
     memory=memory,
-    verbose=False
+    verbose=False,
+    handle_parsing_errors=True
 )
 
 if "chat_history" not in st.session_state:
