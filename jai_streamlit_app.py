@@ -9,7 +9,9 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.chains import RetrievalQA
 from langchain.chains.qa_with_sources import load_qa_with_sources_chain
-from langchain.chains.combine_documents import MapReduceDocumentsChain
+from langchain.chains.combine_documents import load_qa_chain
+from langchain.chains import MapReduceDocumentsChain, ReduceDocumentsChain
+from langchain.prompts import PromptTemplate
 from langchain.schema import Document
 
 # === CONFIGURATION ===
@@ -18,7 +20,7 @@ PDF_PATH = "Johnson-Tile-Guide-2023.pdf"
 EXCEL_PATH = "HRJ DATA.xlsx"
 IMAGE_FOLDER = "extracted_images"
 
-# === IMAGE TOPIC MAPPING ===
+# === TILE-TOPIC TO IMAGE PAGE MAP ===
 topic_page_map = {
     "bathroom": 14,
     "parking": 22,
@@ -45,7 +47,8 @@ def extract_images_from_pdf(pdf_path):
         return
     doc = fitz.open(pdf_path)
     for page_index in range(len(doc)):
-        images = doc[page_index].get_images(full=True)
+        page = doc[page_index]
+        images = page.get_images(full=True)
         for img_index, img in enumerate(images):
             xref = img[0]
             base_image = doc.extract_image(xref)
@@ -71,20 +74,47 @@ def prepare_vectorstore():
     emp_docs = load_employee_data(EXCEL_PATH)
     all_docs = pdf_docs + emp_docs
     embeddings = OpenAIEmbeddings(model="text-embedding-ada-002")
-    return FAISS.from_documents(all_docs, embeddings)
+    vectorstore = FAISS.from_documents(all_docs, embeddings)
+    return vectorstore
 
-# === UI ===
-st.set_page_config("JAI - Johnson Tile AI", page_icon="🧱")
-st.title("🤖 JAI — Johnson AI")
-st.markdown("<p style='text-align: center;'>Your smart assistant for tiles</p><hr>", unsafe_allow_html=True)
+# === PROMPT ===
+prompt_template = PromptTemplate(
+    input_variables=["context", "question"],
+    template="""
+You are an intelligent assistant answering ONLY questions related to Johnson Tiles and its employees.
 
-# === INIT ===
+Use the following context to answer the question in a well-formatted, rich markdown response with **headings**, **bold**, **bullet points**, and **paragraphs** if needed. Be helpful and detailed:
+
+Context:
+{context}
+
+Question:
+{question}
+
+Answer:
+"""
+)
+
+# === STREAMLIT UI ===
+st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
+st.markdown("""
+    <h1 style='text-align: center;'>🤖 JAI — Johnson AI</h1>
+    <p style='text-align: center;'>Your smart assistant for tiles</p>
+    <hr style='border:1px solid #ddd;'>
+""", unsafe_allow_html=True)
+
 extract_images_from_pdf(PDF_PATH)
 vectorstore = prepare_vectorstore()
-retriever = vectorstore.as_retriever()
+
 llm = ChatOpenAI(model_name="gpt-3.5-turbo")
-qa_chain = load_qa_with_sources_chain(llm, chain_type="map_reduce")
-qa = RetrievalQA(combine_documents_chain=qa_chain, retriever=retriever)
+qa_chain = load_qa_chain(llm=llm, chain_type="stuff", prompt=prompt_template)
+reduce_chain = load_qa_chain(llm=llm, chain_type="stuff", prompt=prompt_template)
+combine_chain = MapReduceDocumentsChain(
+    llm_chain=qa_chain,
+    reduce_documents_chain=reduce_chain,
+    document_variable_name="context"
+)
+retriever = vectorstore.as_retriever()
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -102,11 +132,7 @@ for msg in st.session_state.chat_history:
 prompt = st.chat_input("Ask me anything about tiles ...")
 if prompt:
     st.session_state.chat_history.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
     query = prompt.lower()
-    response = ""
 
     if query in ["hi", "hello", "hi jai", "hello jai"]:
         response = "Hello! I'm JAI 😊 — happy to help you with tile advice. What would you like to know?"
@@ -127,10 +153,8 @@ if prompt:
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
-        try:
-            response = qa.run(prompt)
-        except Exception as e:
-            response = f"❌ Sorry, an error occurred: {str(e)}"
+        docs = retriever.get_relevant_documents(prompt)
+        response = combine_chain.run({"input_documents": docs, "question": prompt})
 
         for topic, page in topic_page_map.items():
             if topic in query:
