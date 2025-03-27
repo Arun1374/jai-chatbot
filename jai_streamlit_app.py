@@ -7,9 +7,8 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
-from langchain.chains import RetrievalQA
+from langchain.chains import RetrievalQA, LLMChain
 from langchain.chains.qa_with_sources import load_qa_with_sources_chain
-from langchain.chains.qa_generation import load_qa_chain
 from langchain.chains import MapReduceDocumentsChain, ReduceDocumentsChain
 from langchain.prompts import PromptTemplate
 from langchain.schema import Document
@@ -107,8 +106,8 @@ extract_images_from_pdf(PDF_PATH)
 vectorstore = prepare_vectorstore()
 
 llm = ChatOpenAI(model_name="gpt-3.5-turbo")
-qa_chain = load_qa_chain(llm=llm, chain_type="stuff", prompt=prompt_template)
-reduce_chain = load_qa_chain(llm=llm, chain_type="stuff", prompt=prompt_template)
+qa_chain = LLMChain(llm=llm, prompt=prompt_template)
+reduce_chain = LLMChain(llm=llm, prompt=prompt_template)
 combine_chain = MapReduceDocumentsChain(
     llm_chain=qa_chain,
     reduce_documents_chain=reduce_chain,
