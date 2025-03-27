@@ -3,14 +3,11 @@ import random
 import fitz  # PyMuPDF
 import pandas as pd
 import streamlit as st
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
-from langchain.chains import RetrievalQA, LLMChain
-from langchain.chains.qa_with_sources import load_qa_with_sources_chain
-from langchain.chains import MapReduceDocumentsChain, ReduceDocumentsChain
-from langchain.prompts import PromptTemplate
+from langchain.chains import RetrievalQA
 from langchain.schema import Document
 
 # === CONFIGURATION ===
@@ -76,24 +73,6 @@ def prepare_vectorstore():
     vectorstore = FAISS.from_documents(all_docs, embeddings)
     return vectorstore
 
-# === PROMPT ===
-prompt_template = PromptTemplate(
-    input_variables=["context", "question"],
-    template="""
-You are an intelligent assistant answering ONLY questions related to Johnson Tiles and its employees.
-
-Use the following context to answer the question in a well-formatted, rich markdown response with **headings**, **bold**, **bullet points**, and **paragraphs** if needed. Be helpful and detailed:
-
-Context:
-{context}
-
-Question:
-{question}
-
-Answer:
-"""
-)
-
 # === STREAMLIT UI ===
 st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
 st.markdown("""
@@ -104,16 +83,7 @@ st.markdown("""
 
 extract_images_from_pdf(PDF_PATH)
 vectorstore = prepare_vectorstore()
-
-llm = ChatOpenAI(model_name="gpt-3.5-turbo")
-qa_chain = LLMChain(llm=llm, prompt=prompt_template)
-reduce_chain = LLMChain(llm=llm, prompt=prompt_template)
-combine_chain = MapReduceDocumentsChain(
-    llm_chain=qa_chain,
-    reduce_documents_chain=reduce_chain,
-    document_variable_name="context"
-)
-retriever = vectorstore.as_retriever()
+qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(model_name="gpt-3.5-turbo"), chain_type="stuff", retriever=vectorstore.as_retriever())
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -131,6 +101,7 @@ for msg in st.session_state.chat_history:
 prompt = st.chat_input("Ask me anything about tiles ...")
 if prompt:
     st.session_state.chat_history.append({"role": "user", "content": prompt})
+    response = ""
     query = prompt.lower()
 
     if query in ["hi", "hello", "hi jai", "hello jai"]:
@@ -152,8 +123,10 @@ if prompt:
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
-        docs = retriever.get_relevant_documents(prompt)
-        response = combine_chain.run({"input_documents": docs, "question": prompt})
+        try:
+            response = qa.run(prompt)
+        except Exception:
+            response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles or HRJ employees."
 
         for topic, page in topic_page_map.items():
             if topic in query:
