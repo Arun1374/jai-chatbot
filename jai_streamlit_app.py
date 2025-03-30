@@ -1,21 +1,18 @@
 import os
 import random
 import base64
-import pandas as pd
 import streamlit as st
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.chains import RetrievalQA
-from langchain.schema import Document
 
 # === CONFIGURATION ===
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 PDF_PATH = "Johnson-Tile-Guide-2023.pdf"
 IMAGE_FOLDER = "extracted_images"
 
-# === TILE-TOPIC TO IMAGE MAP ===
 tile_image_map = {
     "bathroom": ["bathroom_1.jpg", "bathroom_2.jpg", "bathroom_3.jpg", "bathroom_4.jpg"],
     "parking": ["parking_1.jpg", "parking_2.jpg"],
@@ -34,7 +31,6 @@ TILE_SONGS = [
     "🎵 From your kitchen to your bath, I pave the perfect tiled path!"
 ]
 
-# === VECTOR STORE SETUP ===
 @st.cache_resource
 def prepare_vectorstore():
     loader = PyPDFLoader(PDF_PATH)
@@ -45,7 +41,6 @@ def prepare_vectorstore():
     vectorstore = FAISS.from_documents(pdf_docs, embeddings)
     return vectorstore
 
-# === SUGGESTION LOGIC ===
 def generate_suggestions(user_input):
     lower = user_input.lower()
     if "bathroom" in lower:
@@ -63,7 +58,6 @@ def generate_suggestions(user_input):
     else:
         return ["Which tiles are best for outdoors?", "Where can I buy Johnson tiles?", "How do I clean my tiles?"]
 
-# === UTILITY ===
 def image_to_base64(image_path):
     with open(image_path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
@@ -95,46 +89,48 @@ with col2:
         st.session_state.show_suggestions = False
         st.rerun()
 
-# Display chat history
 for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"], unsafe_allow_html=True)
 
-# Chat input box
 prompt = st.chat_input("Ask me anything about tiles ...")
 
 if prompt:
-    st.session_state.chat_history.append({"role": "user", "content": prompt})
-    query = prompt.lower()
+    # Smart question mark fixer
+    query = prompt.strip()
+    question_words = ("where", "what", "how", "who", "can", "is", "are", "does", "do", "when", "which", "should", "could", "would")
+    if query.lower().startswith(question_words) and not query.endswith("?"):
+        query += "?"
 
-    # Predefined responses
-    if query in ["hi", "hello", "hi jai", "hello jai"]:
+    st.session_state.chat_history.append({"role": "user", "content": prompt})
+
+    if query.lower() in ["hi", "hello", "hi jai", "hello jai"]:
         response = "Hello! I'm JAI 😊 — happy to help you with tile advice. What would you like to know?"
-    elif "your name" in query:
+    elif "your name" in query.lower():
         response = "My name is <b>JAI — Johnson AI</b> 🤖. I'm your smart assistant for all things tiles!"
-    elif "who are you" in query:
+    elif "who are you" in query.lower():
         response = "I'm <b>JAI</b> — your virtual tile expert, built to help you with <b>Johnson products only</b>."
-    elif "how are you" in query:
+    elif "how are you" in query.lower():
         response = "I'm all tiled up and ready to assist you! 😄 What can I help you with today?"
-    elif "what can you do" in query:
+    elif "what can you do" in query.lower():
         response = "I can help you choose the right Johnson tile, explain technical specs, and suggest suitable tiles for every space!"
-    elif "girlfriend" in query:
+    elif "girlfriend" in query.lower():
         response = "Haha 😄 I’m fully committed to tiles — no time for romance!"
-    elif "born" in query or "built" in query:
+    elif "born" in query.lower() or "built" in query.lower():
         response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>, who works under <b>Rohit Chintawar</b> in the Digital Team."
-    elif "creator" in query or "who made you" in query:
+    elif "creator" in query.lower() or "who made you" in query.lower():
         response = "I was proudly built by <b>Arunkumar Gond</b> and the amazing <b>Digital Team</b> under <b>Rohit Chintawar</b> at H&R Johnson. 🙌"
-    elif "sing" in query and "song" in query:
+    elif "sing" in query.lower() and "song" in query.lower():
         response = random.choice(TILE_SONGS)
     else:
         try:
-            response = qa.run(prompt)
+            response = qa.run(query)
         except Exception:
             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
-        # === Show matching tile images (MULTIPLE + Click-to-Zoom)
+        # Show images based on topic
         for topic, image_files in tile_image_map.items():
-            if topic in query:
+            if topic in query.lower():
                 st.markdown(f"#### 📸 Example of {topic.title()} Tiles")
                 images_per_row = 2
                 for i in range(0, len(image_files), images_per_row):
@@ -153,16 +149,13 @@ if prompt:
                                 st.markdown(img_html, unsafe_allow_html=True)
                 break
 
-    # Show response
     st.session_state.chat_history.append({"role": "assistant", "content": response})
     with st.chat_message("assistant"):
         st.markdown(response, unsafe_allow_html=True)
 
-    # Enable suggestion section
     st.session_state.last_input = prompt
     st.session_state.show_suggestions = True
 
-# === SUGGESTIONS ===
 if st.session_state.show_suggestions:
     suggestions = generate_suggestions(st.session_state.last_input)
     st.markdown("##### 🔍 Suggested Questions:")
