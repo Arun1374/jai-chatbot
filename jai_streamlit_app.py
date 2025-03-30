@@ -165,7 +165,7 @@ if prompt:
     st.session_state.last_input = prompt
     st.session_state.show_suggestions = True
 
-elif "pin" in prompt.lower() or any(city.lower() in prompt.lower() for city in dealer_df["city"].dropna().unique()):
+elif prompt and ("pin" in prompt.lower() or any(city and city.lower() in prompt.lower() for city in dealer_df["city"].dropna().unique())):
     loc = extract_city_or_pin(prompt)
     dealer_info = get_dealers(loc)
     if dealer_info:
