@@ -13,8 +13,8 @@ from langchain.schema import Document
 # === CONFIGURATION ===
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 PDF_PATH = "Johnson-Tile-Guide-2023.pdf"
-IMAGE_FOLDER = "extracted_images"
 EXCEL_PATH = "HRJ Tiles CustomeProfileTemplate 21-01-2025.xlsx"
+IMAGE_FOLDER = "extracted_images"
 
 # === TILE-TOPIC TO IMAGE PAGE MAP ===
 topic_page_map = {
@@ -63,6 +63,23 @@ def prepare_vectorstore():
     vectorstore = FAISS.from_documents(pdf_docs, embeddings)
     return vectorstore
 
+def search_dealers(city_or_pin):
+    try:
+        df = pd.read_excel(EXCEL_PATH)
+        city_or_pin = str(city_or_pin).lower().strip()
+        results = df[df.apply(lambda row: city_or_pin in str(row.get("City", "")).lower() or city_or_pin in str(row.get("Pin Code", "")), axis=1)]
+        if results.empty:
+            return "❌ No dealers or distributors found for that location. Please try another city or PIN code."
+
+        output = "<b>🔍 Here are dealers/distributors near you:</b><br><br>"
+        for _, row in results.iterrows():
+            output += f"<b>Name:</b> {row.get('Customer Name', 'N/A')}<br>"
+            output += f"<b>Address:</b> {row.get('Address', 'N/A')}<br>"
+            output += f"<b>City:</b> {row.get('City', 'N/A')} | <b>PIN:</b> {row.get('Pin Code', 'N/A')}<br><br>"
+        return output
+    except Exception as e:
+        return f"⚠️ Error reading dealer information: {str(e)}"
+
 def generate_suggestions(user_input):
     lower = user_input.lower()
     if "bathroom" in lower:
@@ -79,137 +96,3 @@ def generate_suggestions(user_input):
         return ["How do cool roof tiles work?", "Do they reduce temperature indoors?", "Which tiles for summer heat?"]
     else:
         return ["Which tiles are best for outdoors?", "Where can I buy Johnson tiles?", "How do I clean my tiles?"]
-
-def search_dealers(user_input, df):
-    results = []
-    query = user_input.lower()
-    pin_codes = [str(int(pin)) for pin in df["PIN_CODE"].dropna().unique() if str(pin).isdigit()]
-    for pin in pin_codes:
-        if pin in query:
-            matches = df[df["PIN_CODE"] == int(pin)]
-            results.extend(matches.to_dict(orient="records"))
-    cities = df["CITY"].dropna().unique()
-    for city in cities:
-        if city.lower() in query:
-            matches = df[df["CITY"].str.lower() == city.lower()]
-            results.extend(matches.to_dict(orient="records"))
-    seen = set()
-    unique_results = []
-    for r in results:
-        key = (r["NAME"], r["CITY"], r["PIN_CODE"])
-        if key not in seen:
-            seen.add(key)
-            unique_results.append(r)
-        if len(unique_results) >= 3:
-            break
-    return unique_results
-
-# === STREAMLIT APP ===
-st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
-st.markdown("""
-    <h1 style='text-align: center;'>🤖 JAI — Johnson AI</h1>
-    <p style='text-align: center;'>Your smart assistant for tiles</p>
-    <hr style='border:1px solid #ddd;'>
-""", unsafe_allow_html=True)
-
-extract_images_from_pdf(PDF_PATH)
-vectorstore = prepare_vectorstore()
-qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(model_name="gpt-3.5-turbo"), chain_type="stuff", retriever=vectorstore.as_retriever())
-dealer_df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1")
-
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-if "show_suggestions" not in st.session_state:
-    st.session_state.show_suggestions = False
-if "last_input" not in st.session_state:
-    st.session_state.last_input = ""
-
-col1, col2 = st.columns([6, 1])
-with col2:
-    if st.button("🗑️ Clear Chat"):
-        st.session_state.chat_history = []
-        st.session_state.show_suggestions = False
-        st.rerun()
-
-for msg in st.session_state.chat_history:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"], unsafe_allow_html=True)
-
-prompt = st.chat_input("Ask me anything about tiles ...")
-
-if prompt:
-    st.session_state.chat_history.append({"role": "user", "content": prompt})
-    query = prompt.lower()
-
-    if query in ["hi", "hello", "hi jai", "hello jai"]:
-        response = "Hello! I'm JAI 😊 — happy to help you with tile advice. What would you like to know?"
-    elif "your name" in query:
-        response = "My name is <b>JAI — Johnson AI</b> 🤖. I'm your smart assistant for all things tiles!"
-    elif "who are you" in query:
-        response = "I'm <b>JAI</b> — your virtual tile expert, built to help you with <b>Johnson products only</b>."
-    elif "how are you" in query:
-        response = "I'm all tiled up and ready to assist you! 😄 What can I help you with today?"
-    elif "what can you do" in query:
-        response = "I can help you choose the right Johnson tile, explain technical specs, and suggest suitable tiles for every space!"
-    elif "girlfriend" in query:
-        response = "Haha 😄 I’m fully committed to tiles — no time for romance!"
-    elif "born" in query or "built" in query:
-        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>, who works under <b>Rohit Chintawar</b> in the Digital Team."
-    elif "creator" in query or "who made you" in query:
-        response = "I was proudly built by <b>Arunkumar Gond</b> and the amazing <b>Digital Team</b> under <b>Rohit Chintawar</b> at H&R Johnson. 🙌"
-    elif "sing" in query and "song" in query:
-        response = random.choice(TILE_SONGS)
-    elif "buy" in query or "dealer" in query or "distributor" in query:
-        dealers = search_dealers(prompt, dealer_df)
-        if dealers:
-            response = "<b>🏪 You can reach out to these dealers/distributors near you:</b><br><ul>"
-            for d in dealers:
-                response += f"<li><b>{d['NAME']}</b>, {d['ADDRESS']} - {d['CITY']} ({int(d['PIN_CODE'])})<br>📞 {d.get('MOBILE_1', 'N/A')}</li>"
-            response += "</ul>"
-        else:
-            response = "⚠️ Sorry, I couldn't find a dealer for your location. Please try a different city or PIN code."
-    else:
-        try:
-            response = qa.run(prompt)
-        except Exception:
-            response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
-
-        for topic, page in topic_page_map.items():
-            if topic in query:
-                for file in os.listdir(IMAGE_FOLDER):
-                    if file.startswith(f"page_{page}_img"):
-                        st.image(os.path.join(IMAGE_FOLDER, file), caption=f"Example of {topic.title()} Tile")
-                        break
-                break
-
-    st.session_state.chat_history.append({"role": "assistant", "content": response})
-    with st.chat_message("assistant"):
-        st.markdown(response, unsafe_allow_html=True)
-
-    st.session_state.last_input = prompt
-    st.session_state.show_suggestions = True
-
-# === SUGGESTIONS ===
-if st.session_state.show_suggestions:
-    suggestions = generate_suggestions(st.session_state.last_input)
-    st.markdown("##### 🔍 Suggested Questions:")
-    cols = st.columns(len(suggestions))
-    for i, suggestion in enumerate(suggestions):
-        if cols[i].button(suggestion, key=f"suggestion_{i}"):
-            st.session_state.chat_history.append({"role": "user", "content": suggestion})
-            try:
-                if "buy" in suggestion or "dealer" in suggestion:
-                    dealers = search_dealers(suggestion, dealer_df)
-                    if dealers:
-                        response = "<b>🏪 You can reach out to these dealers/distributors near you:</b><br><ul>"
-                        for d in dealers:
-                            response += f"<li><b>{d['NAME']}</b>, {d['ADDRESS']} - {d['CITY']} ({int(d['PIN_CODE'])})<br>📞 {d.get('MOBILE_1', 'N/A')}</li>"
-                        response += "</ul>"
-                    else:
-                        response = "⚠️ Sorry, I couldn't find a dealer for your location."
-                else:
-                    response = qa.run(suggestion)
-            except Exception:
-                response = "⚠️ Sorry, I couldn’t understand that."
-            st.session_state.chat_history.append({"role": "assistant", "content": response})
-            st.rerun()
