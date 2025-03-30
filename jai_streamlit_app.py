@@ -62,25 +62,6 @@ def prepare_vectorstore():
     vectorstore = FAISS.from_documents(pdf_docs, embeddings)
     return vectorstore
 
-def generate_dynamic_suggestions(user_input):
-    input_lower = user_input.lower()
-    if any(word in input_lower for word in ["bathroom", "restroom"]):
-        return ["Which tiles are best for bathroom floors?", "What size tiles are good for bathrooms?", "Do you have anti-slip bathroom tiles?"]
-    elif any(word in input_lower for word in ["kitchen"]):
-        return ["What tiles are suitable for kitchen walls?", "Do you have oil-resistant tiles?", "Which color tiles are good for kitchens?"]
-    elif any(word in input_lower for word in ["swimming", "pool"]):
-        return ["Which tiles are best for swimming pools?", "Are pool tiles anti-skid?", "Do you have blue pool tiles?"]
-    elif any(word in input_lower for word in ["roof", "terrace"]):
-        return ["What is cool roof tile?", "Which tiles reduce heat on rooftops?", "Are Endura tiles good for terraces?"]
-    elif any(word in input_lower for word in ["living room", "hall"]):
-        return ["Which tiles are best for living rooms?", "Do you offer glossy tiles for halls?", "What size is ideal for living room tiles?"]
-    elif any(word in input_lower for word in ["parking", "garage"]):
-        return ["Which tiles are suitable for parking?", "Do you have heavy-duty parking tiles?", "Are parking tiles available in 400x400 size?"]
-    elif any(word in input_lower for word in ["buy", "purchase", "shop", "where"]):
-        return ["Where can I buy Johnson Tiles?", "Is there a dealer near me?", "Do you have an experience center?"]
-    else:
-        return ["Which Johnson tile series is best for homes?", "Tell me about the Max-Grip series", "Are there any special tiles for hospitals?"]
-
 # === STREAMLIT UI ===
 st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
 st.markdown("""
@@ -121,7 +102,7 @@ if prompt:
     elif "how are you" in query:
         response = "I'm all tiled up and ready to assist you! 😄 What can I help you with today?"
     elif "what can you do" in query:
-        response = "I can help you choose the right Johnson tile, explain technical specs, suggest use-cases, and answer sales-related queries."
+        response = "I can help you choose the right Johnson tile, explain technical specs, and answer all sales-related queries."
     elif "girlfriend" in query:
         response = "Haha 😄 I’m fully committed to tiles — no time for romance!"
     elif "born" in query or "built" in query:
@@ -148,10 +129,14 @@ if prompt:
     with st.chat_message("assistant"):
         st.markdown(response, unsafe_allow_html=True)
 
-    # Suggested Questions
-    suggestions = generate_dynamic_suggestions(prompt)
-    with st.expander("💡 Suggested Questions"):
-        for question in suggestions:
-            if st.button(question):
-                st.session_state.chat_history.append({"role": "user", "content": question})
-                st.rerun()
+    # === SUGGESTED QUESTIONS ===
+    suggestions = [
+        f"What are the best tiles for {topic}?" for topic in topic_page_map.keys() if topic not in query
+    ][:4]
+
+    st.markdown("### 💡 Suggestions:")
+    cols = st.columns(len(suggestions))
+    for idx, q in enumerate(suggestions):
+        if cols[idx].button(q):
+            st.session_state.chat_history.append({"role": "user", "content": q})
+            st.rerun()
