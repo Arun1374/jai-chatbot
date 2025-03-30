@@ -154,6 +154,6 @@ if st.session_state.suggestions:
     st.markdown("##### 🔍 Suggested Questions:")
     cols = st.columns(len(st.session_state.suggestions))
     for i, suggestion in enumerate(st.session_state.suggestions):
-    if cols[i].button(suggestion, key=f"suggestion_btn_{i}"):
-        st.session_state.chat_history.append({"role": "user", "content": suggestion})
-        st.rerun()  # ✅ Use this instead of st.experimental_rerun()
+        if cols[i].button(suggestion, key=f"suggestion_btn_{i}"):
+            st.session_state.chat_history.append({"role": "user", "content": suggestion})
+            st.rerun()  # ✅ Use this instead of st.experimental_rerun()
