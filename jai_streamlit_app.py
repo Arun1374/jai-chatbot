@@ -128,7 +128,6 @@ if prompt:
         except Exception:
             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
-        # Show images based on topic
         for topic, image_files in tile_image_map.items():
             if topic in query.lower():
                 st.markdown(f"#### 📸 Example of {topic.title()} Tiles")
@@ -159,18 +158,23 @@ if prompt:
 if st.session_state.show_suggestions:
     suggestions = generate_suggestions(st.session_state.last_input)
     st.markdown("##### 🔍 Suggested Questions:")
-    st.markdown("<div style='display:flex; gap:10px; flex-wrap:wrap;'>", unsafe_allow_html=True)
-    for i, suggestion in enumerate(suggestions):
-        if st.button(f"💡 {suggestion}", key=f"suggestion_{i}"):
-            st.session_state.chat_history.append({"role": "user", "content": suggestion})
+
+    with st.form("suggestion_form", clear_on_submit=True):
+        cols = st.columns(len(suggestions))
+        selected_suggestion = None
+        for i, suggestion in enumerate(suggestions):
+            if cols[i].form_submit_button(f"💡 {suggestion}"):
+                selected_suggestion = suggestion
+        
+        if selected_suggestion:
+            st.session_state.chat_history.append({"role": "user", "content": selected_suggestion})
             with st.spinner("JAI is typing..."):
                 try:
-                    response = qa.run(suggestion)
+                    response = qa.run(selected_suggestion)
                 except Exception:
                     response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
             st.session_state.chat_history.append({"role": "assistant", "content": response})
             st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
 
 # === FEEDBACK SECTION ===
 with st.expander("💬 Give Feedback"):
