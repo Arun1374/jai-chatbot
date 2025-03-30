@@ -145,7 +145,7 @@ if any(term in query.lower() for term in buy_intents):
             "👉 Please provide your <b>city</b> or <b>PIN code</b> so I can help you locate the nearest dealer."
         )
 
-    # Show assistant message
+    # Show assistant response
     st.session_state.chat_history.append({"role": "assistant", "content": response})
     with st.chat_message("assistant"):
         st.markdown(response, unsafe_allow_html=True)
