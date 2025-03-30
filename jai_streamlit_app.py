@@ -27,11 +27,11 @@ topic_page_map = {
 }
 
 TILE_SONGS = [
-    "\U0001F3B5 I'm a tile and I shine so bright, step on me, your room's just right!",
-    "\U0001F3B6 Glossy, matte, or slip-resistant too, Johnson Tiles are made for you!",
-    "\U0001F3B5 Stick with me, and never fall, I grip the ground and beat them all!",
-    "\U0001F3B6 On the floor or on the wall, Johnson Tiles stand tall for all!",
-    "\U0001F3B5 From your kitchen to your bath, I pave the perfect tiled path!"
+    "🎵 I'm a tile and I shine so bright, step on me, your room's just right!",
+    "🎶 Glossy, matte, or slip-resistant too, Johnson Tiles are made for you!",
+    "🎵 Stick with me, and never fall, I grip the ground and beat them all!",
+    "🎶 On the floor or on the wall, Johnson Tiles stand tall for all!",
+    "🎵 From your kitchen to your bath, I pave the perfect tiled path!"
 ]
 
 # === FUNCTIONS ===
@@ -63,7 +63,7 @@ def prepare_vectorstore():
     return vectorstore
 
 # === STREAMLIT UI ===
-st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="\U0001F9F1")
+st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
 st.markdown("""
     <h1 style='text-align: center;'>🤖 JAI — Johnson AI</h1>
     <p style='text-align: center;'>Your smart assistant for tiles</p>
@@ -89,28 +89,18 @@ for msg in st.session_state.chat_history:
 
 prompt = st.chat_input("Ask me anything about tiles ...")
 
-# === SUGGESTED BUTTONS ===
-def get_suggestions(user_input):
-    if not user_input:
-        return ["What tiles are best for bathrooms?", "Do you have slip-resistant tiles?", "Where can I buy tiles?", "What sizes are available?"]
-    lower_input = user_input.lower()
-    if "bathroom" in lower_input:
-        return ["Do you have anti-skid tiles?", "What colors are best for bathroom walls?", "Are glossy tiles suitable for bathrooms?"]
-    elif "kitchen" in lower_input:
-        return ["Are tiles heat resistant?", "Can I use wall tiles in the kitchen?", "Best tiles for kitchen flooring?"]
-    elif "price" in lower_input or "cost" in lower_input:
-        return ["What is the price range for tiles?", "Do you offer budget options?", "Are designer tiles expensive?"]
-    return ["Show me anti-skid tiles", "What finishes are available?", "Tell me about outdoor tiles"]
+# === SUGGESTIONS ===
+def generate_suggestions(prompt):
+    prompt = prompt.lower()
+    if any(word in prompt for word in ["bathroom", "floor", "slip"]):
+        return ["Which tiles are best for bathroom floors?", "Do bathroom tiles need to be anti-skid?", "What's the size of bathroom tiles?"]
+    if any(word in prompt for word in ["roof", "cool"]):
+        return ["What is cool roof tile?", "Do Johnson Tiles offer heat-reflective tiles?", "Which tiles are good for terrace?"]
+    if any(word in prompt for word in ["hospital", "clinic"]):
+        return ["Tiles recommended for hospitals?", "Are Johnson tiles anti-bacterial?", "Hygienic tiles for medical use?"]
+    return ["Where can I buy Johnson tiles?", "Do you offer anti-skid tiles?", "Which tiles are good for swimming pools?"]
 
-suggestions = get_suggestions(prompt)
-if suggestions:
-    st.markdown("##### 🔍 Suggested Questions:")
-    cols = st.columns(len(suggestions))
-    for i, suggestion in enumerate(suggestions):
-        if cols[i].button(suggestion, key=f"suggestion_{i}"):
-            prompt = suggestion
-
-# === RESPONSE LOGIC ===
+# === MAIN CHAT LOGIC ===
 if prompt:
     st.session_state.chat_history.append({"role": "user", "content": prompt})
     response = ""
@@ -125,13 +115,13 @@ if prompt:
     elif "how are you" in query:
         response = "I'm all tiled up and ready to assist you! 😄 What can I help you with today?"
     elif "what can you do" in query:
-        response = "I can help you choose the right Johnson tile, explain technical specs, recommend usage, and suggest designs!"
+        response = "I can help you choose the right Johnson tile, explain technical specs, and answer any tile-related queries!"
     elif "girlfriend" in query:
         response = "Haha 😄 I’m fully committed to tiles — no time for romance!"
     elif "born" in query or "built" in query:
-        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>, who works under <b>Rohit Chintawar</b> in the Digital Team."
+        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>, under <b>Rohit Chintawar</b>."
     elif "creator" in query or "who made you" in query:
-        response = "I was proudly built by <b>Arunkumar Gond</b> and the amazing <b>Digital Team</b> under <b>Rohit Chintawar</b> at H&R Johnson. 🙌"
+        response = "I was proudly built by <b>Arunkumar Gond</b> and the <b>Digital Team</b> at H&R Johnson. 🙌"
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
@@ -151,3 +141,18 @@ if prompt:
     st.session_state.chat_history.append({"role": "assistant", "content": response})
     with st.chat_message("assistant"):
         st.markdown(response, unsafe_allow_html=True)
+
+# === DISPLAY SUGGESTIONS ===
+suggestions = generate_suggestions(prompt or "")
+if suggestions:
+    st.markdown("##### 🔍 Suggested Questions:")
+    cols = st.columns(len(suggestions))
+    for i, suggestion in enumerate(suggestions):
+        if cols[i].button(suggestion, key=f"suggestion_btn_{i}"):
+            st.session_state.chat_history.append({"role": "user", "content": suggestion})
+            try:
+                response = qa.run(suggestion)
+            except Exception:
+                response = "⚠️ Sorry, I couldn’t process that suggestion."
+            st.session_state.chat_history.append({"role": "assistant", "content": response})
+            st.rerun()
