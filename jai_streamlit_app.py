@@ -16,13 +16,13 @@ IMAGE_FOLDER = "extracted_images"
 
 # === TILE-TOPIC TO IMAGE MAP ===
 tile_image_map = {
-    "bathroom": ["bathroom_1.jpg"],
-    "parking": ["parking_1.jpg"],
+    "bathroom": ["bathroom_1.jpg", "bathroom_2.jpg"],
+    "parking": ["parking_1.jpg", "parking_2.jpg"],
     "cool roof": ["cool_roof_1.jpg"],
-    "swimming pool": ["swimming_pool_1.jpg"],
-    "living room": ["living_room_1.jpg"],
+    "swimming pool": ["swimming_pool_1.jpg", "swimming_pool_2.jpg"],
+    "living room": ["living_room_1.jpg", "living_room_2.jpg"],
     "hospital": ["hospital_1.jpg"],
-    "industrial": ["industrial_1.jpg"]
+    "industrial": ["industrial_1.jpg", "industrial_2.jpg"]
 }
 
 TILE_SONGS = [
@@ -89,10 +89,12 @@ with col2:
         st.session_state.show_suggestions = False
         st.rerun()
 
+# Display chat history
 for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"], unsafe_allow_html=True)
 
+# Chat input box
 prompt = st.chat_input("Ask me anything about tiles ...")
 
 if prompt:
@@ -119,25 +121,29 @@ if prompt:
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
-        # GPT answer from PDF
         try:
             response = qa.run(prompt)
         except Exception:
             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
-        # Show image if keyword matches tile type
+        # === Show matching tile images (MULTIPLE)
         for topic, image_files in tile_image_map.items():
             if topic in query:
-                for image_file in image_files:
+                st.markdown(f"#### 📸 Example of {topic.title()} Tiles")
+                cols = st.columns(len(image_files))
+                for i, image_file in enumerate(image_files):
                     image_path = os.path.join(IMAGE_FOLDER, image_file)
                     if os.path.exists(image_path):
-                        st.image(image_path, caption=f"Example of {topic.title()} Tile")
+                        with cols[i]:
+                            st.image(image_path, caption=image_file.split('.')[0].replace('_', ' ').title())
                 break
 
+    # Show response
     st.session_state.chat_history.append({"role": "assistant", "content": response})
     with st.chat_message("assistant"):
         st.markdown(response, unsafe_allow_html=True)
 
+    # Enable suggestion section
     st.session_state.last_input = prompt
     st.session_state.show_suggestions = True
 
