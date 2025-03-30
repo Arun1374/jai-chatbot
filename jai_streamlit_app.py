@@ -9,7 +9,8 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.chains import RetrievalQA
 from langchain.schema import Document
-from utils import get_suggestions_from_llm  # assume this utility generates suggestions
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 
 # === CONFIGURATION ===
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
@@ -34,6 +35,22 @@ TILE_SONGS = [
     "🎶 On the floor or on the wall, Johnson Tiles stand tall for all!",
     "🎵 From your kitchen to your bath, I pave the perfect tiled path!"
 ]
+
+# === HELPER FUNCTION TO GET SUGGESTIONS FROM LLM ===
+def get_suggestions_from_llm(query, llm_model="gpt-3.5-turbo"):
+    prompt_template = PromptTemplate.from_template(
+        '''
+        You are a helpful assistant trained on Johnson Tiles product catalog. A user just asked:
+        "{query}"
+
+        Based on this question, suggest 3 highly relevant follow-up questions they might also want to ask.
+        Make each suggestion short (under 12 words) and easy to click.
+        Return them as a comma-separated list.
+        '''
+    )
+    chain = prompt_template | ChatOpenAI(model=llm_model) | StrOutputParser()
+    output = chain.invoke({"query": query})
+    return [s.strip() for s in output.split(",") if s.strip()]
 
 # === FUNCTIONS ===
 def extract_images_from_pdf(pdf_path):
@@ -84,14 +101,9 @@ with col2:
         st.session_state.chat_history = []
         st.rerun()
 
-for msg in st.session_state.chat_history:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"], unsafe_allow_html=True)
-
 prompt = st.chat_input("Ask me anything about tiles ...")
 if prompt:
     st.session_state.chat_history.append({"role": "user", "content": prompt})
-    response = ""
     query = prompt.lower()
 
     if query in ["hi", "hello", "hi jai", "hello jai"]:
@@ -103,11 +115,11 @@ if prompt:
     elif "how are you" in query:
         response = "I'm all tiled up and ready to assist you! 😄 What can I help you with today?"
     elif "what can you do" in query:
-        response = "I can help you choose the right Johnson tile, explain technical specs, and assist with recommendations!"
+        response = "I can help you choose the right Johnson tile, explain technical specs, and suggest the best product for your space."
     elif "girlfriend" in query:
         response = "Haha 😄 I’m fully committed to tiles — no time for romance!"
     elif "born" in query or "built" in query:
-        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>."
+        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>, under <b>Rohit Chintawar</b> in the Digital Team."
     elif "creator" in query or "who made you" in query:
         response = "I was proudly built by <b>Arunkumar Gond</b> and the amazing <b>Digital Team</b> at H&R Johnson. 🙌"
     elif "sing" in query and "song" in query:
@@ -118,44 +130,22 @@ if prompt:
         except Exception:
             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
-        for topic, page in topic_page_map.items():
-            if topic in query:
-                for file in os.listdir(IMAGE_FOLDER):
-                    if file.startswith(f"page_{page}_img"):
-                        st.image(os.path.join(IMAGE_FOLDER, file), caption=f"Example of {topic.title()} Tile")
-                        break
-                break
-
     st.session_state.chat_history.append({"role": "assistant", "content": response})
-    with st.chat_message("assistant"):
-        st.markdown(response, unsafe_allow_html=True)
 
-    # === DYNAMIC SUGGESTIONS ===
-    suggestions = get_suggestions_from_llm(prompt)
+# === Display Chat History ===
+for msg in st.session_state.chat_history:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"], unsafe_allow_html=True)
+
+# === Dynamic Suggestions ===
+if st.session_state.chat_history:
+    last_user_input = st.session_state.chat_history[-1]["content"]
+    suggestions = get_suggestions_from_llm(last_user_input)
     st.markdown("##### 🔍 Suggested Questions:")
     cols = st.columns(len(suggestions))
-    clicked_suggestion = None
-
     for i, suggestion in enumerate(suggestions):
         if cols[i].button(suggestion, key=f"suggestion_{i}"):
-            clicked_suggestion = suggestion
-
-    if clicked_suggestion:
-        st.session_state.chat_history.append({"role": "user", "content": clicked_suggestion})
-        query = clicked_suggestion.lower()
-        try:
-            response = qa.run(clicked_suggestion)
-        except Exception:
-            response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
-
-        for topic, page in topic_page_map.items():
-            if topic in query:
-                for file in os.listdir(IMAGE_FOLDER):
-                    if file.startswith(f"page_{page}_img"):
-                        st.image(os.path.join(IMAGE_FOLDER, file), caption=f"Example of {topic.title()} Tile")
-                        break
-                break
-
-        st.session_state.chat_history.append({"role": "assistant", "content": response})
-        with st.chat_message("assistant"):
-            st.markdown(response, unsafe_allow_html=True)
+            st.session_state.chat_history.append({"role": "user", "content": suggestion})
+            response = qa.run(suggestion)
+            st.session_state.chat_history.append({"role": "assistant", "content": response})
+            st.rerun()
