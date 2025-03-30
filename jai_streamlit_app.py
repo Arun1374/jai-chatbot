@@ -9,6 +9,7 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.chains import RetrievalQA
 from langchain.schema import Document
+from utils import get_suggestions_from_llm  # assume this utility generates suggestions
 
 # === CONFIGURATION ===
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
@@ -102,13 +103,13 @@ if prompt:
     elif "how are you" in query:
         response = "I'm all tiled up and ready to assist you! 😄 What can I help you with today?"
     elif "what can you do" in query:
-        response = "I can help you choose the right Johnson tile, explain technical specs, and answer product-related queries!"
+        response = "I can help you choose the right Johnson tile, explain technical specs, and assist with recommendations!"
     elif "girlfriend" in query:
         response = "Haha 😄 I’m fully committed to tiles — no time for romance!"
     elif "born" in query or "built" in query:
-        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>, who works under <b>Rohit Chintawar</b> in the Digital Team."
+        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>."
     elif "creator" in query or "who made you" in query:
-        response = "I was proudly built by <b>Arunkumar Gond</b> and the amazing <b>Digital Team</b> under <b>Rohit Chintawar</b> at H&R Johnson. 🙌"
+        response = "I was proudly built by <b>Arunkumar Gond</b> and the amazing <b>Digital Team</b> at H&R Johnson. 🙌"
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
@@ -129,32 +130,32 @@ if prompt:
     with st.chat_message("assistant"):
         st.markdown(response, unsafe_allow_html=True)
 
-    # === SMART SUGGESTIONS ===
-    def get_suggestions(query):
-        if not query:
-            return []
-        suggestion_prompt = f"""
-        Based on the user question: '{query}', generate 3 relevant follow-up sales-oriented questions strictly related to Johnson Tiles (e.g., selection, durability, pricing, aesthetics, sizes). Reply as a Python list.
-        """
-        try:
-            llm = ChatOpenAI(model_name="gpt-3.5-turbo")
-            suggestion_response = llm.invoke(suggestion_prompt)
-            suggestions = eval(suggestion_response.content.strip())
-            return suggestions if isinstance(suggestions, list) else []
-        except Exception as e:
-            print("❌ Suggestion generation error:", e)
-            return []
+    # === DYNAMIC SUGGESTIONS ===
+    suggestions = get_suggestions_from_llm(prompt)
+    st.markdown("##### 🔍 Suggested Questions:")
+    cols = st.columns(len(suggestions))
+    clicked_suggestion = None
 
-    suggestions = get_suggestions(prompt)
-    if suggestions:
-        st.markdown("#### 💡 Suggested Follow-ups:")
-        cols = st.columns(len(suggestions))
-        for i, suggestion in enumerate(suggestions):
-            if cols[i].button(suggestion, key=f"suggestion_{i}_{suggestion}"):
-                st.session_state.chat_history.append({"role": "user", "content": suggestion})
-                try:
-                    followup_response = qa.run(suggestion)
-                except Exception:
-                    followup_response = "⚠️ Sorry, I couldn’t understand that."
-                st.session_state.chat_history.append({"role": "assistant", "content": followup_response})
-                st.rerun()
+    for i, suggestion in enumerate(suggestions):
+        if cols[i].button(suggestion, key=f"suggestion_{i}"):
+            clicked_suggestion = suggestion
+
+    if clicked_suggestion:
+        st.session_state.chat_history.append({"role": "user", "content": clicked_suggestion})
+        query = clicked_suggestion.lower()
+        try:
+            response = qa.run(clicked_suggestion)
+        except Exception:
+            response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
+
+        for topic, page in topic_page_map.items():
+            if topic in query:
+                for file in os.listdir(IMAGE_FOLDER):
+                    if file.startswith(f"page_{page}_img"):
+                        st.image(os.path.join(IMAGE_FOLDER, file), caption=f"Example of {topic.title()} Tile")
+                        break
+                break
+
+        st.session_state.chat_history.append({"role": "assistant", "content": response})
+        with st.chat_message("assistant"):
+            st.markdown(response, unsafe_allow_html=True)
