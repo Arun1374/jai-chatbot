@@ -13,6 +13,7 @@ from langchain.schema import Document
 # === CONFIGURATION ===
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 PDF_PATH = "Johnson-Tile-Guide-2023.pdf"
+EXCEL_PATH = "HRJ DATA.xlsx"
 IMAGE_FOLDER = "extracted_images"
 
 # === TILE-TOPIC TO IMAGE PAGE MAP ===
@@ -81,6 +82,7 @@ col1, col2 = st.columns([6, 1])
 with col2:
     if st.button("🗑️ Clear Chat"):
         st.session_state.chat_history = []
+        st.session_state.last_suggestions = []
         st.rerun()
 
 for msg in st.session_state.chat_history:
@@ -88,10 +90,20 @@ for msg in st.session_state.chat_history:
         st.markdown(msg["content"], unsafe_allow_html=True)
 
 prompt = st.chat_input("Ask me anything about tiles ...")
-if prompt:
-    st.session_state.chat_history.append({"role": "user", "content": prompt})
+suggestion_clicked = None
+all_suggestions = st.session_state.get("last_suggestions", [])
+
+cols = st.columns(len(all_suggestions)) if all_suggestions else []
+for i, suggestion in enumerate(all_suggestions):
+    if cols[i].button(suggestion):
+        suggestion_clicked = suggestion
+
+user_input = suggestion_clicked if suggestion_clicked else prompt
+
+if user_input:
+    st.session_state.chat_history.append({"role": "user", "content": user_input})
     response = ""
-    query = prompt.lower()
+    query = user_input.lower()
 
     if query in ["hi", "hello", "hi jai", "hello jai"]:
         response = "Hello! I'm JAI 😊 — happy to help you with tile advice. What would you like to know?"
@@ -102,18 +114,16 @@ if prompt:
     elif "how are you" in query:
         response = "I'm all tiled up and ready to assist you! 😄 What can I help you with today?"
     elif "what can you do" in query:
-        response = "I can help you choose the right Johnson tile, explain technical specs, and answer all sales-related queries."
+        response = "I can help you choose the right Johnson tile, explain technical specs, and guide your selection."
     elif "girlfriend" in query:
         response = "Haha 😄 I’m fully committed to tiles — no time for romance!"
-    elif "born" in query or "built" in query:
-        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>, who works under <b>Rohit Chintawar</b> in the Digital Team."
-    elif "creator" in query or "who made you" in query:
-        response = "I was proudly built by <b>Arunkumar Gond</b> and the amazing <b>Digital Team</b> under <b>Rohit Chintawar</b> at H&R Johnson. 🙌"
+    elif "born" in query or "built" in query or "creator" in query or "who made you" in query:
+        response = "I was proudly built by the Digital Team at H&R Johnson to guide you with the best tiles! 🙌"
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
         try:
-            response = qa.run(prompt)
+            response = qa.run(user_input)
         except Exception:
             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
@@ -129,14 +139,28 @@ if prompt:
     with st.chat_message("assistant"):
         st.markdown(response, unsafe_allow_html=True)
 
-    # === SUGGESTED QUESTIONS ===
-    suggestions = [
-        f"What are the best tiles for {topic}?" for topic in topic_page_map.keys() if topic not in query
-    ][:4]
+    # Dynamic suggestions
+    keyword_suggestions = {
+        "bathroom": ["Which tiles are best for bathrooms?", "Do you have anti-skid tiles?"],
+        "kitchen": ["Which tiles are best for kitchen walls?", "Can I use glossy tiles in kitchen?"],
+        "parking": ["Show me parking tiles", "Are parking tiles strong?"],
+        "roof": ["What is cool roof tile?", "Does it reduce temperature?"],
+        "living": ["Suggest tiles for living room", "What design looks modern?"],
+        "industrial": ["Which tiles are suitable for industries?", "Are they heavy-duty?"],
+        "hospital": ["Do you have tiles for hospitals?", "Are your tiles antibacterial?"],
+        "buy": ["Where can I buy Johnson Tiles?", "Nearest dealer for Johnson tiles?"]
+    }
 
-    st.markdown("### 💡 Suggestions:")
+    suggestions = []
+    for keyword, qlist in keyword_suggestions.items():
+        if keyword in query:
+            suggestions = qlist
+            break
+    if not suggestions:
+        suggestions = ["Show me bathroom tiles", "Where to buy Johnson Tiles?", "What’s trending now?"]
+
+    st.session_state.last_suggestions = suggestions
+    st.markdown("##### 🔍 Suggested Questions:")
     cols = st.columns(len(suggestions))
-    for idx, q in enumerate(suggestions):
-        if cols[idx].button(q):
-            st.session_state.chat_history.append({"role": "user", "content": q})
-            st.rerun()
+    for i, suggestion in enumerate(suggestions):
+        cols[i].button(suggestion)
