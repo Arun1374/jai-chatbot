@@ -83,8 +83,13 @@ prompt = st.chat_input("Ask me anything about tiles ...")
 
 if prompt:
     query = prompt.strip()
+    # Auto-expand numeric-only PIN queries
+    if query.isdigit() and len(query) == 6:
+        query = f"Show me dealers near PIN code {query}"
+
+    
     question_words = ("where", "what", "how", "who", "can", "is", "are", "does", "do", "when", "which", "should", "could", "would")
-    if query.lower().startswith(question_words) and not query.endswith("?"):
+    if query.lower().startswith(question_words) and not query.endswith("?") and not query.endswith("?"):
         query += "?"
 
     st.session_state.chat_history.append({"role": "user", "content": prompt})
