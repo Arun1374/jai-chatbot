@@ -112,7 +112,23 @@ if prompt:
 
     with st.spinner("JAI is typing..."):
         try:
-            response = qa.run(query)
+            # === Fallback handler for direct PIN code queries ===
+            if query.lower().startswith("show me dealers near pin code"):
+                pin_code = query.split()[-1]
+                matches = [doc.page_content for doc in vectorstore.docstore._dict.values() if pin_code in doc.page_content]
+                if matches:
+                    response = f"Here are the dealers matching PIN code {pin_code}:
+
+" + "
+
+".join(matches[:3])
+                else:
+                    response = (
+                        f"⚠️ Sorry, I couldn't find any dealers for PIN code {pin_code} in the document.<br>"
+                        "Please double-check the code or visit <a href='https://www.hrjohnsonindia.com' target='_blank'>www.hrjohnsonindia.com</a> for help."
+                    )
+            else:
+                response = qa.run(query)
         except Exception:
             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
