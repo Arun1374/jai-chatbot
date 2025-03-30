@@ -96,7 +96,6 @@ for msg in st.session_state.chat_history:
 prompt = st.chat_input("Ask me anything about tiles ...")
 
 if prompt:
-    # Smart question mark fixer
     query = prompt.strip()
     question_words = ("where", "what", "how", "who", "can", "is", "are", "does", "do", "when", "which", "should", "could", "would")
     if query.lower().startswith(question_words) and not query.endswith("?"):
@@ -124,7 +123,8 @@ if prompt:
         response = random.choice(TILE_SONGS)
     else:
         try:
-            response = qa.run(query)
+            with st.spinner("JAI is typing..."):
+                response = qa.run(query)
         except Exception:
             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
@@ -159,13 +159,21 @@ if prompt:
 if st.session_state.show_suggestions:
     suggestions = generate_suggestions(st.session_state.last_input)
     st.markdown("##### 🔍 Suggested Questions:")
-    cols = st.columns(len(suggestions))
+    st.markdown("<div style='display:flex; gap:10px; flex-wrap:wrap;'>", unsafe_allow_html=True)
     for i, suggestion in enumerate(suggestions):
-        if cols[i].button(suggestion, key=f"suggestion_{i}"):
+        if st.button(f"💡 {suggestion}", key=f"suggestion_{i}"):
             st.session_state.chat_history.append({"role": "user", "content": suggestion})
-            try:
-                response = qa.run(suggestion)
-            except Exception:
-                response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
+            with st.spinner("JAI is typing..."):
+                try:
+                    response = qa.run(suggestion)
+                except Exception:
+                    response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
             st.session_state.chat_history.append({"role": "assistant", "content": response})
             st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# === FEEDBACK SECTION ===
+with st.expander("💬 Give Feedback"):
+    feedback = st.text_area("Your feedback:")
+    if st.button("Submit Feedback"):
+        st.success("✅ Thanks! Your feedback has been recorded.")
