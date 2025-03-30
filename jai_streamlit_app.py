@@ -41,7 +41,7 @@ TILE_SONGS = [
 def prepare_vectorstore():
     loader = PyPDFLoader(PDF_PATH)
     documents = loader.load()
-    splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    splitter = CharacterTextSplitter(chunk_size=2000, chunk_overlap=300)
     pdf_docs = splitter.split_documents(documents)
     embeddings = OpenAIEmbeddings(model="text-embedding-ada-002")
     vectorstore = FAISS.from_documents(pdf_docs, embeddings)
@@ -51,12 +51,13 @@ def prepare_vectorstore():
 dealer_df = pd.read_excel(DEALER_EXCEL)
 dealer_df.columns = [col.strip().lower().replace(" ", "_") for col in dealer_df.columns]
 
+# === BUYING INTENT & DEALER FUNCTIONS ===
 def user_intends_to_buy(text):
     buy_keywords = ["buy", "purchase", "get tiles", "dealer", "store", "shop", "distributor"]
     return any(keyword in text.lower() for keyword in buy_keywords)
 
 def extract_city_or_pin(user_input):
-    pin_match = re.findall(r"\\b\\d{6}\\b", user_input)
+    pin_match = re.findall(r"\b\d{6}\b", user_input)
     if pin_match:
         return {"pin_code": pin_match[0]}
     for city in dealer_df["city"].dropna().unique():
@@ -93,7 +94,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 vectorstore = prepare_vectorstore()
-qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(model_name="gpt-3.5-turbo"), chain_type="stuff", retriever=vectorstore.as_retriever())
+retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 5})
+qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(model_name="gpt-3.5-turbo"), chain_type="stuff", retriever=retriever)
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
