@@ -88,10 +88,11 @@ for msg in st.session_state.chat_history:
         st.markdown(msg["content"], unsafe_allow_html=True)
 
 prompt = st.chat_input("Ask me anything about tiles ...")
-
 if prompt:
     st.session_state.chat_history.append({"role": "user", "content": prompt})
+    response = ""
     query = prompt.lower()
+
     if query in ["hi", "hello", "hi jai", "hello jai"]:
         response = "Hello! I'm JAI 😊 — happy to help you with tile advice. What would you like to know?"
     elif "your name" in query:
@@ -101,13 +102,13 @@ if prompt:
     elif "how are you" in query:
         response = "I'm all tiled up and ready to assist you! 😄 What can I help you with today?"
     elif "what can you do" in query:
-        response = "I can help you choose the right Johnson tile, explain technical specs, and suggest tile options!"
+        response = "I can help you choose the right Johnson tile, explain technical specs, and answer product-related queries!"
     elif "girlfriend" in query:
         response = "Haha 😄 I’m fully committed to tiles — no time for romance!"
     elif "born" in query or "built" in query:
-        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>, under <b>Rohit Chintawar</b>."
+        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>, who works under <b>Rohit Chintawar</b> in the Digital Team."
     elif "creator" in query or "who made you" in query:
-        response = "I was proudly built by <b>Arunkumar Gond</b> and the amazing <b>Digital Team</b> at H&R Johnson. 🙌"
+        response = "I was proudly built by <b>Arunkumar Gond</b> and the amazing <b>Digital Team</b> under <b>Rohit Chintawar</b> at H&R Johnson. 🙌"
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
@@ -128,38 +129,32 @@ if prompt:
     with st.chat_message("assistant"):
         st.markdown(response, unsafe_allow_html=True)
 
-    # === Dynamic Suggestion Section ===
-    from langchain.prompts import PromptTemplate
-    from langchain.chains.llm import LLMChain
-
-    suggestion_template = PromptTemplate(
-        input_variables=["question"],
-        template="""
-        Based on the user question: "{question}", suggest 3 follow-up questions that are helpful for a tile sales assistant.
-        The suggestions should be:
-        - Sales-related
-        - Relevant to Johnson Tiles
-        - Short and clear
-        Return them as a Python list.
+    # === SMART SUGGESTIONS ===
+    def get_suggestions(query):
+        if not query:
+            return []
+        suggestion_prompt = f"""
+        Based on the user question: '{query}', generate 3 relevant follow-up sales-oriented questions strictly related to Johnson Tiles (e.g., selection, durability, pricing, aesthetics, sizes). Reply as a Python list.
         """
-    )
+        try:
+            llm = ChatOpenAI(model_name="gpt-3.5-turbo")
+            suggestion_response = llm.invoke(suggestion_prompt)
+            suggestions = eval(suggestion_response.content.strip())
+            return suggestions if isinstance(suggestions, list) else []
+        except Exception as e:
+            print("❌ Suggestion generation error:", e)
+            return []
 
-    suggestion_chain = LLMChain(llm=ChatOpenAI(model_name="gpt-3.5-turbo"), prompt=suggestion_template)
-    try:
-        suggestions_raw = suggestion_chain.run(question=prompt)
-        suggestions = eval(suggestions_raw) if suggestions_raw.strip().startswith("[") else []
-    except:
-        suggestions = []
-
+    suggestions = get_suggestions(prompt)
     if suggestions:
-        st.markdown("##### 🔍 Suggested Questions:")
+        st.markdown("#### 💡 Suggested Follow-ups:")
         cols = st.columns(len(suggestions))
         for i, suggestion in enumerate(suggestions):
-            if cols[i].button(suggestion, key=f"suggestion_btn_{i}"):
+            if cols[i].button(suggestion, key=f"suggestion_{i}_{suggestion}"):
                 st.session_state.chat_history.append({"role": "user", "content": suggestion})
                 try:
-                    response = qa.run(suggestion)
+                    followup_response = qa.run(suggestion)
                 except Exception:
-                    response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
-                st.session_state.chat_history.append({"role": "assistant", "content": response})
+                    followup_response = "⚠️ Sorry, I couldn’t understand that."
+                st.session_state.chat_history.append({"role": "assistant", "content": followup_response})
                 st.rerun()
