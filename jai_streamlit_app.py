@@ -117,11 +117,7 @@ if prompt:
                 pin_code = query.split()[-1]
                 matches = [doc.page_content for doc in vectorstore.docstore._dict.values() if pin_code in doc.page_content]
                 if matches:
-                    response = f"Here are the dealers matching PIN code {pin_code}:
-
-" + "
-
-".join(matches[:3])
+                    response = f"Here are the dealers matching PIN code {pin_code}:<br><br>" + "<br><br>".join(matches[:3])
                 else:
                     response = (
                         f"⚠️ Sorry, I couldn't find any dealers for PIN code {pin_code} in the document.<br>"
