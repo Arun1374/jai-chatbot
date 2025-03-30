@@ -1,5 +1,6 @@
 import os
 import random
+import base64
 import pandas as pd
 import streamlit as st
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
@@ -16,7 +17,7 @@ IMAGE_FOLDER = "extracted_images"
 
 # === TILE-TOPIC TO IMAGE MAP ===
 tile_image_map = {
-    "bathroom": ["bathroom_1.jpg", "bathroom_2.jpg"],
+    "bathroom": ["bathroom_1.jpg", "bathroom_2.jpg", "bathroom_3.jpg", "bathroom_4.jpg"],
     "parking": ["parking_1.jpg", "parking_2.jpg"],
     "cool roof": ["cool_roof_1.jpg"],
     "swimming pool": ["swimming_pool_1.jpg", "swimming_pool_2.jpg"],
@@ -61,6 +62,11 @@ def generate_suggestions(user_input):
         return ["How do cool roof tiles work?", "Do they reduce temperature indoors?", "Which tiles for summer heat?"]
     else:
         return ["Which tiles are best for outdoors?", "Where can I buy Johnson tiles?", "How do I clean my tiles?"]
+
+# === UTILITY ===
+def image_to_base64(image_path):
+    with open(image_path, "rb") as img_file:
+        return base64.b64encode(img_file.read()).decode()
 
 # === STREAMLIT UI ===
 st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
@@ -126,16 +132,25 @@ if prompt:
         except Exception:
             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
-        # === Show matching tile images (MULTIPLE)
+        # === Show matching tile images (MULTIPLE + Click-to-Zoom)
         for topic, image_files in tile_image_map.items():
             if topic in query:
                 st.markdown(f"#### 📸 Example of {topic.title()} Tiles")
-                cols = st.columns(len(image_files))
-                for i, image_file in enumerate(image_files):
-                    image_path = os.path.join(IMAGE_FOLDER, image_file)
-                    if os.path.exists(image_path):
-                        with cols[i]:
-                            st.image(image_path, caption=image_file.split('.')[0].replace('_', ' ').title())
+                images_per_row = 2
+                for i in range(0, len(image_files), images_per_row):
+                    cols = st.columns(images_per_row)
+                    for j, image_file in enumerate(image_files[i:i + images_per_row]):
+                        image_path = os.path.join(IMAGE_FOLDER, image_file)
+                        if os.path.exists(image_path):
+                            image_base64 = image_to_base64(image_path)
+                            img_html = f"""
+                                <a href="data:image/jpeg;base64,{image_base64}" target="_blank">
+                                    <img src="data:image/jpeg;base64,{image_base64}" style="width:100%; border-radius:10px;" />
+                                </a>
+                                <p style="text-align:center; font-size:14px;">{image_file.split('.')[0].replace('_', ' ').title()}</p>
+                            """
+                            with cols[j]:
+                                st.markdown(img_html, unsafe_allow_html=True)
                 break
 
     # Show response
