@@ -3,10 +3,10 @@ import random
 import fitz  # PyMuPDF
 import pandas as pd
 import streamlit as st
-from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import CharacterTextSplitter
+from langchain_community.document_loaders import PyPDFLoader
 from langchain.chains import RetrievalQA
 from langchain.schema import Document
 
@@ -62,17 +62,27 @@ def prepare_vectorstore():
     vectorstore = FAISS.from_documents(pdf_docs, embeddings)
     return vectorstore
 
-def get_suggestions_from_input(user_input):
-    prompt = f"Suggest 3 very relevant and helpful follow-up questions for this user query about Johnson Tiles: \"{user_input}\". Respond as a Python list."
-    chat = ChatOpenAI(model_name="gpt-3.5-turbo")
-    try:
-        response = chat.invoke(prompt)
-        return eval(response.content)
-    except:
-        return []
 
-# === UI SETUP ===
-st.set_page_config(page_title="JAI - Johnson AI", page_icon="🧱")
+def generate_suggestions(user_input):
+    # Rule-based logic for PDF-related suggestions
+    lower = user_input.lower()
+    if "bathroom" in lower:
+        return ["What size tiles are best for bathrooms?", "Are bathroom tiles slip-resistant?", "Glossy or matte for bathroom walls?"]
+    elif "parking" in lower:
+        return ["Which tiles are durable for parking areas?", "Do you have anti-skid parking tiles?", "Best color tiles for parking?"]
+    elif "living room" in lower:
+        return ["Best designs for living room tiles?", "Which finish suits living room flooring?", "Is glossy suitable for living rooms?"]
+    elif "swimming pool" in lower:
+        return ["Tiles suitable for pool decks?", "Are pool tiles anti-slip?", "Can Johnson tiles be used underwater?"]
+    elif "industrial" in lower:
+        return ["Best tiles for industrial use?", "Can tiles withstand heavy machinery?", "Are Endura tiles chemical resistant?"]
+    elif "cool roof" in lower:
+        return ["How do cool roof tiles work?", "Do they reduce temperature indoors?", "Which tiles for summer heat?"]
+    else:
+        return ["Which tiles are best for outdoors?", "Where can I buy Johnson tiles?", "How do I clean my tiles?"]
+
+# === STREAMLIT UI ===
+st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
 st.markdown("""
     <h1 style='text-align: center;'>🤖 JAI — Johnson AI</h1>
     <p style='text-align: center;'>Your smart assistant for tiles</p>
@@ -83,33 +93,32 @@ extract_images_from_pdf(PDF_PATH)
 vectorstore = prepare_vectorstore()
 qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(model_name="gpt-3.5-turbo"), chain_type="stuff", retriever=vectorstore.as_retriever())
 
-# === SESSION STATE INIT ===
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
-if "suggestions" not in st.session_state:
-    st.session_state.suggestions = []
 
-# === CLEAR BUTTON ===
+if "show_suggestions" not in st.session_state:
+    st.session_state.show_suggestions = False
+
+if "last_input" not in st.session_state:
+    st.session_state.last_input = ""
+
 col1, col2 = st.columns([6, 1])
 with col2:
     if st.button("🗑️ Clear Chat"):
         st.session_state.chat_history = []
-        st.session_state.suggestions = []
+        st.session_state.show_suggestions = False
         st.rerun()
 
-# === DISPLAY CHAT ===
 for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"], unsafe_allow_html=True)
 
-# === MAIN INPUT BOX ===
-user_input = st.chat_input("Ask me anything about tiles ...")
+prompt = st.chat_input("Ask me anything about tiles ...")
 
-if user_input:
-    st.session_state.chat_history.append({"role": "user", "content": user_input})
-    query = user_input.lower()
+if prompt:
+    st.session_state.chat_history.append({"role": "user", "content": prompt})
+    query = prompt.lower()
 
-    # Handle static responses
     if query in ["hi", "hello", "hi jai", "hello jai"]:
         response = "Hello! I'm JAI 😊 — happy to help you with tile advice. What would you like to know?"
     elif "your name" in query:
@@ -119,42 +128,47 @@ if user_input:
     elif "how are you" in query:
         response = "I'm all tiled up and ready to assist you! 😄 What can I help you with today?"
     elif "what can you do" in query:
-        response = "I can help you choose the right Johnson tile, explain technical specs, and guide you through tile selection!"
+        response = "I can help you choose the right Johnson tile, explain technical specs, and suggest suitable tiles for every space!"
     elif "girlfriend" in query:
         response = "Haha 😄 I’m fully committed to tiles — no time for romance!"
-    elif "born" in query or "built" in query or "creator" in query:
-        response = "I was proudly built by <b>Arunkumar Gond</b> in the <b>Digital Team</b> of H&R Johnson under <b>Rohit Chintawar</b>. 🙌"
-    elif "sing" in query or "song" in query:
+    elif "born" in query or "built" in query:
+        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>, who works under <b>Rohit Chintawar</b> in the Digital Team."
+    elif "creator" in query or "who made you" in query:
+        response = "I was proudly built by <b>Arunkumar Gond</b> and the amazing <b>Digital Team</b> under <b>Rohit Chintawar</b> at H&R Johnson. 🙌"
+    elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
         try:
-            response = qa.run(user_input)
-        except:
+            response = qa.run(prompt)
+        except Exception:
             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
-    # Add response
+        for topic, page in topic_page_map.items():
+            if topic in query:
+                for file in os.listdir(IMAGE_FOLDER):
+                    if file.startswith(f"page_{page}_img"):
+                        st.image(os.path.join(IMAGE_FOLDER, file), caption=f"Example of {topic.title()} Tile")
+                        break
+                break
+
     st.session_state.chat_history.append({"role": "assistant", "content": response})
     with st.chat_message("assistant"):
         st.markdown(response, unsafe_allow_html=True)
 
-    # Show image if matched
-    for topic, page in topic_page_map.items():
-        if topic in query:
-            for file in os.listdir(IMAGE_FOLDER):
-                if file.startswith(f"page_{page}_img"):
-                    st.image(os.path.join(IMAGE_FOLDER, file), caption=f"Example of {topic.title()} Tile")
-                    break
-            break
+    st.session_state.last_input = prompt
+    st.session_state.show_suggestions = True
 
-    # Generate new suggestions based on this query
-    st.session_state.suggestions = get_suggestions_from_input(user_input)
-
-# === SUGGESTED QUESTIONS AFTER RESPONSE ===
-if st.session_state.chat_history and st.session_state.chat_history[-1]["role"] == "assistant" and st.session_state.suggestions:
-    st.markdown("<hr>", unsafe_allow_html=True)
-    st.markdown("#### 🔍 Suggested Follow-up Questions:")
-    cols = st.columns(len(st.session_state.suggestions))
-    for i, suggestion in enumerate(st.session_state.suggestions):
+# === SUGGESTIONS ===
+if st.session_state.show_suggestions:
+    suggestions = generate_suggestions(st.session_state.last_input)
+    st.markdown("##### 🔍 Suggested Questions:")
+    cols = st.columns(len(suggestions))
+    for i, suggestion in enumerate(suggestions):
         if cols[i].button(suggestion, key=f"suggestion_{i}"):
             st.session_state.chat_history.append({"role": "user", "content": suggestion})
+            try:
+                response = qa.run(suggestion)
+            except Exception:
+                response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
+            st.session_state.chat_history.append({"role": "assistant", "content": response})
             st.rerun()
