@@ -56,7 +56,11 @@ st.markdown("""
 
 vectorstore = prepare_vectorstore()
 dealer_df = pd.read_excel("Johnson_Dealer_List_Cleaned.xlsx")
-qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(model_name="gpt-3.5-turbo"), chain_type="stuff", retriever=vectorstore.as_retriever())
+qa = RetrievalQA.from_chain_type(
+    llm=ChatOpenAI(model_name="gpt-4-1106-preview"),
+    chain_type="stuff",
+    retriever=vectorstore.as_retriever()
+)
 
 # Session setup
 if "chat_history" not in st.session_state:
