@@ -131,7 +131,7 @@ if any(term in query.lower() for term in buy_intents):
                 break
 
     # Build response
-    if found and not match.empty:
+    if found and match is not None and not match.empty:
         rows = match.to_dict("records")
         dealer_lines = [
             f"<b>{r['Dealer Name']}</b><br>📍 {r['Address']}, {r['City']}, {r['State']} - {r['PIN Code']}<br>📞 {r['Contact']} | ✉️ {r['E_MAIL']}"
