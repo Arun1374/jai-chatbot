@@ -130,7 +130,7 @@ if any(term in query.lower() for term in buy_intents):
                 found = True
                 break
 
-    # Build response
+    # Build the response
     if found and match is not None and not match.empty:
         rows = match.to_dict("records")
         dealer_lines = [
@@ -145,9 +145,11 @@ if any(term in query.lower() for term in buy_intents):
             "👉 Please provide your <b>city</b> or <b>PIN code</b> so I can help you locate the nearest dealer."
         )
 
+    # Show assistant message
     st.session_state.chat_history.append({"role": "assistant", "content": response})
     with st.chat_message("assistant"):
         st.markdown(response, unsafe_allow_html=True)
+
     st.session_state.show_suggestions = True
     st.session_state.last_input = "dealer"
     st.stop()
