@@ -100,15 +100,18 @@ qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(model_name="gpt-3.5-turbo"), cha
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "show_suggestions" not in st.session_state:
-    st.session_state.show_suggestions = False
+    st.session_state.show_suggestions = True
 if "last_input" not in st.session_state:
     st.session_state.last_input = ""
+if "asking_for_dealer" not in st.session_state:
+    st.session_state.asking_for_dealer = False
 
 col1, col2 = st.columns([6, 1])
 with col2:
     if st.button("🗑️ Clear Chat"):
         st.session_state.chat_history = []
-        st.session_state.show_suggestions = False
+        st.session_state.show_suggestions = True
+        st.session_state.asking_for_dealer = False
         st.rerun()
 
 for msg in st.session_state.chat_history:
@@ -124,6 +127,21 @@ if prompt:
         query += "?"
 
     st.session_state.chat_history.append({"role": "user", "content": prompt})
+
+    if st.session_state.asking_for_dealer:
+        loc = extract_city_or_pin(query)
+        dealer_info = get_dealers(loc)
+        if dealer_info:
+            st.session_state.chat_history.append({"role": "assistant", "content": dealer_info})
+            with st.chat_message("assistant"):
+                st.markdown(dealer_info, unsafe_allow_html=True)
+        else:
+            with st.chat_message("assistant"):
+                st.markdown("❌ Couldn’t find dealer info for that location. Please try another city or PIN code.")
+        st.session_state.asking_for_dealer = False
+        st.session_state.show_suggestions = True
+        st.stop()
+
     response = qa.run(query)
     follow_up_msg = ""
 
@@ -134,9 +152,9 @@ if prompt:
             if dealer_info:
                 response += f"\n\n{dealer_info}"
             else:
-                follow_up_msg = "🔍 Couldn’t find exact dealer info. Please share your city or PIN code."
-        else:
-            follow_up_msg = "📍 Would you like me to help you find the nearest dealer? Please share your city or PIN code."
+                follow_up_msg = "📍 Would you like me to help you find the nearest dealer? Please share your city or PIN code."
+                st.session_state.asking_for_dealer = True
+                st.session_state.show_suggestions = False
 
     for topic, image_files in tile_image_map.items():
         if topic in query.lower():
@@ -162,18 +180,18 @@ if prompt:
     with st.chat_message("assistant"):
         st.markdown(response, unsafe_allow_html=True)
         if follow_up_msg:
-            st.markdown(follow_up_msg)
+            st.markdown(f"{follow_up_msg}")
+            col_yes, col_no = st.columns([1, 1])
+            with col_yes:
+                if st.button("✅ Yes", key="yes_followup"):
+                    st.session_state.asking_for_dealer = True
+                    st.session_state.show_suggestions = False
+            with col_no:
+                if st.button("❌ No", key="no_followup"):
+                    st.session_state.asking_for_dealer = False
+                    st.session_state.show_suggestions = True
 
     st.session_state.last_input = prompt
-    st.session_state.show_suggestions = True
-
-elif prompt and ("pin" in prompt.lower() or any(city and city.lower() in prompt.lower() for city in dealer_df["city"].dropna().unique())):
-    loc = extract_city_or_pin(prompt)
-    dealer_info = get_dealers(loc)
-    if dealer_info:
-        st.session_state.chat_history.append({"role": "assistant", "content": dealer_info})
-        with st.chat_message("assistant"):
-            st.markdown(dealer_info, unsafe_allow_html=True)
 
 if st.session_state.show_suggestions:
     def generate_suggestions(user_input):
