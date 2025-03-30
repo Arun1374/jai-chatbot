@@ -3,10 +3,10 @@ import random
 import fitz  # PyMuPDF
 import pandas as pd
 import streamlit as st
-from langchain_community.vectorstores import FAISS
-from langchain_community.document_loaders import PyPDFLoader
-from langchain.text_splitter import CharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_community.vectorstores import FAISS
+from langchain.text_splitter import CharacterTextSplitter
+from langchain_community.document_loaders import PyPDFLoader
 from langchain.chains import RetrievalQA
 from langchain.schema import Document
 
@@ -15,7 +15,7 @@ os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 PDF_PATH = "Johnson-Tile-Guide-2023.pdf"
 IMAGE_FOLDER = "extracted_images"
 
-# === TOPIC TO PAGE MAP ===
+# === TILE-TOPIC TO IMAGE PAGE MAP ===
 topic_page_map = {
     "bathroom": 14,
     "parking": 22,
@@ -57,23 +57,13 @@ def prepare_vectorstore():
     loader = PyPDFLoader(PDF_PATH)
     documents = loader.load()
     splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    split_docs = splitter.split_documents(documents)
+    pdf_docs = splitter.split_documents(documents)
     embeddings = OpenAIEmbeddings(model="text-embedding-ada-002")
-    vectorstore = FAISS.from_documents(split_docs, embeddings)
+    vectorstore = FAISS.from_documents(pdf_docs, embeddings)
     return vectorstore
 
-def get_suggestions_from_llm(user_input):
-    prompt = f"""
-    The user just asked: '{user_input}'
-    Suggest 3 follow-up or related questions a Johnson Tiles salesperson might ask or expect from a customer. Only include tile-related questions. 
-    Provide the suggestions in bullet format.
-    """
-    model = ChatOpenAI(model_name="gpt-3.5-turbo")
-    response = model.invoke(prompt)
-    return [line.strip("-• ") for line in response.content.strip().split("\n") if line.strip()]
-
 # === STREAMLIT UI ===
-st.set_page_config(page_title="JAI - Johnson AI", page_icon="🧱")
+st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
 st.markdown("""
     <h1 style='text-align: center;'>🤖 JAI — Johnson AI</h1>
     <p style='text-align: center;'>Your smart assistant for tiles</p>
@@ -98,11 +88,10 @@ for msg in st.session_state.chat_history:
         st.markdown(msg["content"], unsafe_allow_html=True)
 
 prompt = st.chat_input("Ask me anything about tiles ...")
+
 if prompt:
     st.session_state.chat_history.append({"role": "user", "content": prompt})
-    response = ""
     query = prompt.lower()
-
     if query in ["hi", "hello", "hi jai", "hello jai"]:
         response = "Hello! I'm JAI 😊 — happy to help you with tile advice. What would you like to know?"
     elif "your name" in query:
@@ -112,13 +101,13 @@ if prompt:
     elif "how are you" in query:
         response = "I'm all tiled up and ready to assist you! 😄 What can I help you with today?"
     elif "what can you do" in query:
-        response = "I can help you choose the right Johnson tile, explain technical specs, and help with tile selection based on room type."
+        response = "I can help you choose the right Johnson tile, explain technical specs, and suggest tile options!"
     elif "girlfriend" in query:
         response = "Haha 😄 I’m fully committed to tiles — no time for romance!"
     elif "born" in query or "built" in query:
         response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>, under <b>Rohit Chintawar</b>."
     elif "creator" in query or "who made you" in query:
-        response = "I was proudly built by <b>Arunkumar Gond</b> and the <b>Digital Team</b> at H&R Johnson. 🙌"
+        response = "I was proudly built by <b>Arunkumar Gond</b> and the amazing <b>Digital Team</b> at H&R Johnson. 🙌"
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
@@ -139,13 +128,38 @@ if prompt:
     with st.chat_message("assistant"):
         st.markdown(response, unsafe_allow_html=True)
 
-    # === DYNAMIC SUGGESTIONS ===
-    suggestions = get_suggestions_from_llm(prompt)
-    st.markdown("##### 🔍 Suggested Questions:")
-    cols = st.columns(len(suggestions))
-    for i, suggestion in enumerate(suggestions):
-        if cols[i].button(suggestion, key=f"suggestion_{i}"):
-            st.session_state.chat_history.append({"role": "user", "content": suggestion})
-            follow_up_response = qa.run(suggestion)
-            st.session_state.chat_history.append({"role": "assistant", "content": follow_up_response})
-            st.rerun()
+    # === Dynamic Suggestion Section ===
+    from langchain.prompts import PromptTemplate
+    from langchain.chains.llm import LLMChain
+
+    suggestion_template = PromptTemplate(
+        input_variables=["question"],
+        template="""
+        Based on the user question: "{question}", suggest 3 follow-up questions that are helpful for a tile sales assistant.
+        The suggestions should be:
+        - Sales-related
+        - Relevant to Johnson Tiles
+        - Short and clear
+        Return them as a Python list.
+        """
+    )
+
+    suggestion_chain = LLMChain(llm=ChatOpenAI(model_name="gpt-3.5-turbo"), prompt=suggestion_template)
+    try:
+        suggestions_raw = suggestion_chain.run(question=prompt)
+        suggestions = eval(suggestions_raw) if suggestions_raw.strip().startswith("[") else []
+    except:
+        suggestions = []
+
+    if suggestions:
+        st.markdown("##### 🔍 Suggested Questions:")
+        cols = st.columns(len(suggestions))
+        for i, suggestion in enumerate(suggestions):
+            if cols[i].button(suggestion, key=f"suggestion_btn_{i}"):
+                st.session_state.chat_history.append({"role": "user", "content": suggestion})
+                try:
+                    response = qa.run(suggestion)
+                except Exception:
+                    response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
+                st.session_state.chat_history.append({"role": "assistant", "content": response})
+                st.rerun()
