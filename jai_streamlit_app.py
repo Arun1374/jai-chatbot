@@ -110,40 +110,45 @@ if prompt:
     # SMART BUY DETECTION
     buy_intents = ["where can i buy", "buy tiles", "find dealer", "get tiles", "supplier", "purchase tiles", "distributor"]
     if any(term in query.lower() for term in buy_intents):
-        user_query = query.lower()
-        found = False
-        for pin in dealer_df['PIN Code'].astype(str):
-            if pin in user_query:
-                match = dealer_df[dealer_df['PIN Code'].astype(str) == pin]
+    user_query = query.lower()
+    found = False
+    match = None
+
+    # Check for matching PIN code
+    for pin in dealer_df["PIN Code"].astype(str):
+        if pin in user_query:
+            match = dealer_df[dealer_df["PIN Code"].astype(str) == pin]
+            found = True
+            break
+
+    # If no PIN match, check for city match
+    if not found:
+        for city in dealer_df["City"].dropna().unique():
+            if city.lower() in user_query:
+                match = dealer_df[dealer_df["City"].str.lower() == city.lower()]
                 found = True
                 break
-        if not found:
-            for city in dealer_df['City'].dropna().unique():
-                if city.lower() in user_query:
-                    match = dealer_df[dealer_df['City'].str.lower() == city.lower()]
-                    found = True
-                    break
-                if not match.empty:
-                    rows = match.to_dict('records')
-                    dealer_lines = [
-                        f"<b>{r['Dealer Name']}</b><br>📍 {r['Address']}, {r['City']}, {r['State']} - {r['PIN Code']}<br>📞 {r['Contact']} | ✉️ {r['E_MAIL']}"
-                        for r in rows[:3]
-                    ]
-                    response = "<br><br>".join(dealer_lines)
-                    found = True
-                    break
-        if not found:
-            response = (
-                "You can buy <b>Johnson Tiles</b> through our nationwide dealer network.<br><br>"
-                "🛒 Would you like me to find a dealer for you?<br>"
-                "👉 Please provide your <b>city</b> or <b>PIN code</b> so I can help you locate the nearest dealer."
-            )
-        st.session_state.chat_history.append({"role": "assistant", "content": response})
-        with st.chat_message("assistant"):
-            st.markdown(response, unsafe_allow_html=True)
-        st.session_state.show_suggestions = True
-        st.session_state.last_input = "dealer"
-        st.stop()
+
+    if found and not match.empty:
+        rows = match.to_dict("records")
+        dealer_lines = [
+            f"<b>{r['Dealer Name']}</b><br>📍 {r['Address']}, {r['City']}, {r['State']} - {r['PIN Code']}<br>📞 {r['Contact']} | ✉️ {r['E_MAIL']}"
+            for r in rows[:3]
+        ]
+        response = "<br><br>".join(dealer_lines)
+    else:
+        response = (
+            "You can buy <b>Johnson Tiles</b> through our nationwide dealer network.<br><br>"
+            "🛒 Would you like me to find a dealer for you?<br>"
+            "👉 Please provide your <b>city</b> or <b>PIN code</b> so I can help you locate the nearest dealer."
+        )
+
+    st.session_state.chat_history.append({"role": "assistant", "content": response})
+    with st.chat_message("assistant"):
+        st.markdown(response, unsafe_allow_html=True)
+    st.session_state.show_suggestions = True
+    st.session_state.last_input = "dealer"
+    st.stop()
             response = (
                 "You can buy <b>Johnson Tiles</b> through our nationwide dealer network.<br><br>"
                 "🛒 Would you like me to find a dealer for you?<br>"
