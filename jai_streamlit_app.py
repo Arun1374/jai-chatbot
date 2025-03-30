@@ -1,6 +1,5 @@
 import os
 import random
-import fitz  # PyMuPDF
 import pandas as pd
 import streamlit as st
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
@@ -13,8 +12,7 @@ from langchain.schema import Document
 # === CONFIGURATION ===
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 PDF_PATH = "Johnson-Tile-Guide-2023.pdf"
-EXCEL_PATH = "HRJ Tiles CustomeProfileTemplate 21-01-2025.xlsx"
-IMAGE_FOLDER = "extracted_images"
+IMAGE_FOLDER = "extracted_images"  # Place your images manually here
 
 # === TILE-TOPIC TO IMAGE PAGE MAP ===
 topic_page_map = {
@@ -35,25 +33,8 @@ TILE_SONGS = [
     "🎵 From your kitchen to your bath, I pave the perfect tiled path!"
 ]
 
-# === FUNCTIONS ===
-def extract_images_from_pdf(pdf_path):
-    if not os.path.exists(IMAGE_FOLDER):
-        os.makedirs(IMAGE_FOLDER)
-    if os.listdir(IMAGE_FOLDER):
-        return
-    doc = fitz.open(pdf_path)
-    for page_index in range(len(doc)):
-        page = doc[page_index]
-        images = page.get_images(full=True)
-        for img_index, img in enumerate(images):
-            xref = img[0]
-            base_image = doc.extract_image(xref)
-            image_bytes = base_image["image"]
-            ext = base_image["ext"]
-            filename = f"page_{page_index + 1}_img_{img_index + 1}.{ext}"
-            with open(os.path.join(IMAGE_FOLDER, filename), "wb") as f:
-                f.write(image_bytes)
-
+# === VECTOR STORE SETUP ===
+@st.cache_resource
 def prepare_vectorstore():
     loader = PyPDFLoader(PDF_PATH)
     documents = loader.load()
@@ -63,6 +44,7 @@ def prepare_vectorstore():
     vectorstore = FAISS.from_documents(pdf_docs, embeddings)
     return vectorstore
 
+# === SUGGESTION LOGIC ===
 def generate_suggestions(user_input):
     lower = user_input.lower()
     if "bathroom" in lower:
@@ -80,19 +62,6 @@ def generate_suggestions(user_input):
     else:
         return ["Which tiles are best for outdoors?", "Where can I buy Johnson tiles?", "How do I clean my tiles?"]
 
-def find_dealer_info(city_or_pin):
-    df = pd.read_excel(EXCEL_PATH)
-    results = df[(df.apply(lambda row: city_or_pin.lower() in str(row).lower(), axis=1))]
-    if results.empty:
-        return "❌ Sorry, I couldn't find any dealer/distributor for that location."
-    else:
-        dealers = results[["Customer Name", "City", "Pin Code", "Customer Type"]].dropna().head(5)
-        output = "<b>Here are some nearby dealers/distributors:</b><br><ul>"
-        for _, row in dealers.iterrows():
-            output += f"<li><b>{row['Customer Name']}</b> — {row['Customer Type']} in {row['City']} (PIN: {row['Pin Code']})</li>"
-        output += "</ul>"
-        return output
-
 # === STREAMLIT UI ===
 st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
 st.markdown("""
@@ -101,25 +70,23 @@ st.markdown("""
     <hr style='border:1px solid #ddd;'>
 """, unsafe_allow_html=True)
 
-extract_images_from_pdf(PDF_PATH)
 vectorstore = prepare_vectorstore()
 qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(model_name="gpt-3.5-turbo"), chain_type="stuff", retriever=vectorstore.as_retriever())
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
+
 if "show_suggestions" not in st.session_state:
     st.session_state.show_suggestions = False
+
 if "last_input" not in st.session_state:
     st.session_state.last_input = ""
-if "awaiting_location" not in st.session_state:
-    st.session_state.awaiting_location = False
 
 col1, col2 = st.columns([6, 1])
 with col2:
     if st.button("🗑️ Clear Chat"):
         st.session_state.chat_history = []
         st.session_state.show_suggestions = False
-        st.session_state.awaiting_location = False
         st.rerun()
 
 for msg in st.session_state.chat_history:
@@ -131,12 +98,6 @@ prompt = st.chat_input("Ask me anything about tiles ...")
 if prompt:
     st.session_state.chat_history.append({"role": "user", "content": prompt})
     query = prompt.lower()
-
-    if st.session_state.awaiting_location:
-        dealer_response = find_dealer_info(query)
-        st.session_state.chat_history.append({"role": "assistant", "content": dealer_response})
-        st.session_state.awaiting_location = False
-        st.rerun()
 
     if query in ["hi", "hello", "hi jai", "hello jai"]:
         response = "Hello! I'm JAI 😊 — happy to help you with tile advice. What would you like to know?"
@@ -159,9 +120,6 @@ if prompt:
     else:
         try:
             response = qa.run(prompt)
-            if "where can i buy" in query or "dealer" in query or "distributor" in query:
-                response += "<br><br>Would you like me to provide a specific dealer based on your city or PIN code?"
-                st.session_state.awaiting_location = True
         except Exception:
             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
