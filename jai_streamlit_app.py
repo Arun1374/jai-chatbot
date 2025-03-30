@@ -10,7 +10,7 @@ from langchain.chains import RetrievalQA
 
 # === CONFIGURATION ===
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-PDF_PATH = "Johnson-Tile-Guide-2023-Final-Full-Dealer-List.pdf"
+PDF_PATH = "Johnson-Tile-Guide-2023-Final-Complete-With-Tables.pdf"  # updated PDF with size tables
 IMAGE_FOLDER = "extracted_images"
 
 @st.cache_resource
