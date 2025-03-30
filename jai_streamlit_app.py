@@ -12,17 +12,17 @@ from langchain.schema import Document
 # === CONFIGURATION ===
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 PDF_PATH = "Johnson-Tile-Guide-2023.pdf"
-IMAGE_FOLDER = "extracted_images"  # Place your images manually here
+IMAGE_FOLDER = "extracted_images"
 
-# === TILE-TOPIC TO IMAGE PAGE MAP ===
-topic_page_map = {
-    "bathroom": 14,
-    "parking": 22,
-    "cool roof": 30,
-    "swimming pool": 24,
-    "living room": 18,
-    "hospital": 27,
-    "industrial": 25
+# === TILE-TOPIC TO IMAGE MAP ===
+tile_image_map = {
+    "bathroom": ["bathroom_1.jpg"],
+    "parking": ["parking_1.jpg"],
+    "cool roof": ["cool_roof_1.jpg"],
+    "swimming pool": ["swimming_pool_1.jpg"],
+    "living room": ["living_room_1.jpg"],
+    "hospital": ["hospital_1.jpg"],
+    "industrial": ["industrial_1.jpg"]
 }
 
 TILE_SONGS = [
@@ -99,6 +99,7 @@ if prompt:
     st.session_state.chat_history.append({"role": "user", "content": prompt})
     query = prompt.lower()
 
+    # Predefined responses
     if query in ["hi", "hello", "hi jai", "hello jai"]:
         response = "Hello! I'm JAI 😊 — happy to help you with tile advice. What would you like to know?"
     elif "your name" in query:
@@ -118,17 +119,19 @@ if prompt:
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
+        # GPT answer from PDF
         try:
             response = qa.run(prompt)
         except Exception:
             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
-        for topic, page in topic_page_map.items():
+        # Show image if keyword matches tile type
+        for topic, image_files in tile_image_map.items():
             if topic in query:
-                for file in os.listdir(IMAGE_FOLDER):
-                    if file.startswith(f"page_{page}_img"):
-                        st.image(os.path.join(IMAGE_FOLDER, file), caption=f"Example of {topic.title()} Tile")
-                        break
+                for image_file in image_files:
+                    image_path = os.path.join(IMAGE_FOLDER, image_file)
+                    if os.path.exists(image_path):
+                        st.image(image_path, caption=f"Example of {topic.title()} Tile")
                 break
 
     st.session_state.chat_history.append({"role": "assistant", "content": response})
