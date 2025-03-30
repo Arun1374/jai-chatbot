@@ -14,6 +14,7 @@ from langchain.schema import Document
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 PDF_PATH = "Johnson-Tile-Guide-2023.pdf"
 IMAGE_FOLDER = "extracted_images"
+EXCEL_PATH = "HRJ Tiles CustomeProfileTemplate 21-01-2025.xlsx"
 
 # === TILE-TOPIC TO IMAGE PAGE MAP ===
 topic_page_map = {
@@ -62,9 +63,7 @@ def prepare_vectorstore():
     vectorstore = FAISS.from_documents(pdf_docs, embeddings)
     return vectorstore
 
-
 def generate_suggestions(user_input):
-    # Rule-based logic for PDF-related suggestions
     lower = user_input.lower()
     if "bathroom" in lower:
         return ["What size tiles are best for bathrooms?", "Are bathroom tiles slip-resistant?", "Glossy or matte for bathroom walls?"]
@@ -81,7 +80,31 @@ def generate_suggestions(user_input):
     else:
         return ["Which tiles are best for outdoors?", "Where can I buy Johnson tiles?", "How do I clean my tiles?"]
 
-# === STREAMLIT UI ===
+def search_dealers(user_input, df):
+    results = []
+    query = user_input.lower()
+    pin_codes = [str(int(pin)) for pin in df["PIN_CODE"].dropna().unique() if str(pin).isdigit()]
+    for pin in pin_codes:
+        if pin in query:
+            matches = df[df["PIN_CODE"] == int(pin)]
+            results.extend(matches.to_dict(orient="records"))
+    cities = df["CITY"].dropna().unique()
+    for city in cities:
+        if city.lower() in query:
+            matches = df[df["CITY"].str.lower() == city.lower()]
+            results.extend(matches.to_dict(orient="records"))
+    seen = set()
+    unique_results = []
+    for r in results:
+        key = (r["NAME"], r["CITY"], r["PIN_CODE"])
+        if key not in seen:
+            seen.add(key)
+            unique_results.append(r)
+        if len(unique_results) >= 3:
+            break
+    return unique_results
+
+# === STREAMLIT APP ===
 st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
 st.markdown("""
     <h1 style='text-align: center;'>🤖 JAI — Johnson AI</h1>
@@ -92,13 +115,12 @@ st.markdown("""
 extract_images_from_pdf(PDF_PATH)
 vectorstore = prepare_vectorstore()
 qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(model_name="gpt-3.5-turbo"), chain_type="stuff", retriever=vectorstore.as_retriever())
+dealer_df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1")
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
-
 if "show_suggestions" not in st.session_state:
     st.session_state.show_suggestions = False
-
 if "last_input" not in st.session_state:
     st.session_state.last_input = ""
 
@@ -137,6 +159,15 @@ if prompt:
         response = "I was proudly built by <b>Arunkumar Gond</b> and the amazing <b>Digital Team</b> under <b>Rohit Chintawar</b> at H&R Johnson. 🙌"
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
+    elif "buy" in query or "dealer" in query or "distributor" in query:
+        dealers = search_dealers(prompt, dealer_df)
+        if dealers:
+            response = "<b>🏪 You can reach out to these dealers/distributors near you:</b><br><ul>"
+            for d in dealers:
+                response += f"<li><b>{d['NAME']}</b>, {d['ADDRESS']} - {d['CITY']} ({int(d['PIN_CODE'])})<br>📞 {d.get('MOBILE_1', 'N/A')}</li>"
+            response += "</ul>"
+        else:
+            response = "⚠️ Sorry, I couldn't find a dealer for your location. Please try a different city or PIN code."
     else:
         try:
             response = qa.run(prompt)
@@ -167,8 +198,18 @@ if st.session_state.show_suggestions:
         if cols[i].button(suggestion, key=f"suggestion_{i}"):
             st.session_state.chat_history.append({"role": "user", "content": suggestion})
             try:
-                response = qa.run(suggestion)
+                if "buy" in suggestion or "dealer" in suggestion:
+                    dealers = search_dealers(suggestion, dealer_df)
+                    if dealers:
+                        response = "<b>🏪 You can reach out to these dealers/distributors near you:</b><br><ul>"
+                        for d in dealers:
+                            response += f"<li><b>{d['NAME']}</b>, {d['ADDRESS']} - {d['CITY']} ({int(d['PIN_CODE'])})<br>📞 {d.get('MOBILE_1', 'N/A')}</li>"
+                        response += "</ul>"
+                    else:
+                        response = "⚠️ Sorry, I couldn't find a dealer for your location."
+                else:
+                    response = qa.run(suggestion)
             except Exception:
-                response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
+                response = "⚠️ Sorry, I couldn’t understand that."
             st.session_state.chat_history.append({"role": "assistant", "content": response})
             st.rerun()
