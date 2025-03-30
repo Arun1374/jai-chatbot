@@ -13,7 +13,6 @@ from langchain.schema import Document
 # === CONFIGURATION ===
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 PDF_PATH = "Johnson-Tile-Guide-2023.pdf"
-EXCEL_PATH = "HRJ DATA.xlsx"
 IMAGE_FOLDER = "extracted_images"
 
 # === TILE-TOPIC TO IMAGE PAGE MAP ===
@@ -54,23 +53,13 @@ def extract_images_from_pdf(pdf_path):
             with open(os.path.join(IMAGE_FOLDER, filename), "wb") as f:
                 f.write(image_bytes)
 
-def load_employee_data(excel_path):
-    df = pd.read_excel(excel_path)
-    employee_docs = []
-    for _, row in df.iterrows():
-        text = f"{row['Member Name']} (Employee ID: {row['Member ID']}) works as {row['Designation']} and is based in {row['Location']}."
-        employee_docs.append(Document(page_content=text))
-    return employee_docs
-
 def prepare_vectorstore():
     loader = PyPDFLoader(PDF_PATH)
     documents = loader.load()
     splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     pdf_docs = splitter.split_documents(documents)
-    emp_docs = load_employee_data(EXCEL_PATH)
-    all_docs = pdf_docs + emp_docs
     embeddings = OpenAIEmbeddings(model="text-embedding-ada-002")
-    vectorstore = FAISS.from_documents(all_docs, embeddings)
+    vectorstore = FAISS.from_documents(pdf_docs, embeddings)
     return vectorstore
 
 # === STREAMLIT UI ===
@@ -113,20 +102,20 @@ if prompt:
     elif "how are you" in query:
         response = "I'm all tiled up and ready to assist you! 😄 What can I help you with today?"
     elif "what can you do" in query:
-        response = "I can help you choose the right Johnson tile, explain technical specs, and answer about employees if you ask!"
+        response = "I can help you choose the right Johnson tile, explain technical specs, suggest products, and guide you to nearby retailers."
     elif "girlfriend" in query:
         response = "Haha 😄 I’m fully committed to tiles — no time for romance!"
     elif "born" in query or "built" in query:
-        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>, who works under <b>Rohit Chintawar</b> in the Digital Team."
+        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>, under <b>Rohit Chintawar</b>."
     elif "creator" in query or "who made you" in query:
-        response = "I was proudly built by <b>Arunkumar Gond</b> and the amazing <b>Digital Team</b> under <b>Rohit Chintawar</b> at H&R Johnson. 🙌"
+        response = "I was proudly built by <b>Arunkumar Gond</b> and the <b>Digital Team</b> at H&R Johnson. 🙌"
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
         try:
             response = qa.run(prompt)
         except Exception:
-            response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles or HRJ employees."
+            response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
         for topic, page in topic_page_map.items():
             if topic in query:
@@ -139,3 +128,21 @@ if prompt:
     st.session_state.chat_history.append({"role": "assistant", "content": response})
     with st.chat_message("assistant"):
         st.markdown(response, unsafe_allow_html=True)
+
+    # === SUGGESTIONS BASED ON INPUT ===
+    suggestions = []
+    if any(word in query for word in ["bathroom", "toilet", "washroom"]):
+        suggestions = ["What size tiles are best for bathroom floors?", "Are slip-resistant tiles available for bathrooms?", "Can I use glossy tiles in bathrooms?"]
+    elif any(word in query for word in ["living", "hall", "drawing"]):
+        suggestions = ["Which Johnson tiles are best for living rooms?", "Do you offer large format tiles for hall areas?", "Can I get warm-toned tiles for my living space?"]
+    elif any(word in query for word in ["kitchen"]):
+        suggestions = ["What kind of tiles are best for kitchen backsplash?", "Are anti-stain tiles available for kitchen floors?", "Which Johnson tiles resist oil and spills?"]
+    elif any(word in query for word in ["buy", "purchase", "dealer"]):
+        suggestions = ["Where can I buy Johnson tiles in Mumbai?", "Is there a House of Johnson nearby?", "Can I order tiles online?"]
+
+    if suggestions:
+        st.markdown("""
+        <div style='background-color:#f0f2f6;padding:10px;border-radius:10px;margin-top:20px;'>
+        <b>💡 Suggested Questions:</b><br>
+        <ul>
+        """ + "".join(f"<li>{s}</li>" for s in suggestions) + "</ul></div>", unsafe_allow_html=True)
