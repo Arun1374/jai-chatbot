@@ -114,14 +114,12 @@ if prompt:
     found = False
     match = None
 
-    # Check for matching PIN code
     for pin in dealer_df["PIN Code"].astype(str):
         if pin in user_query:
             match = dealer_df[dealer_df["PIN Code"].astype(str) == pin]
             found = True
             break
 
-    # If no PIN match, check for city match
     if not found:
         for city in dealer_df["City"].dropna().unique():
             if city.lower() in user_query:
@@ -129,7 +127,6 @@ if prompt:
                 found = True
                 break
 
-    # Build response
     if found and not match.empty:
         rows = match.to_dict("records")
         dealer_lines = [
