@@ -87,7 +87,21 @@ for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"], unsafe_allow_html=True)
 
+# Suggested questions based on tile sales
+suggestions = [
+    "Which tiles are best for bathrooms?",
+    "Where can I buy Johnson tiles?",
+    "What are slip-resistant tiles?",
+    "Do you have tiles for hospitals?",
+    "Tell me about Johnson Max-Grip tiles."
+]
+
+selected_question = st.selectbox("💡 Suggested Questions", ["Choose a suggestion..."] + suggestions)
+
 prompt = st.chat_input("Ask me anything about tiles ...")
+if selected_question != "Choose a suggestion...":
+    prompt = selected_question
+
 if prompt:
     st.session_state.chat_history.append({"role": "user", "content": prompt})
     response = ""
@@ -102,13 +116,13 @@ if prompt:
     elif "how are you" in query:
         response = "I'm all tiled up and ready to assist you! 😄 What can I help you with today?"
     elif "what can you do" in query:
-        response = "I can help you choose the right Johnson tile, explain technical specs, suggest products, and guide you to nearby retailers."
+        response = "I can help you choose the right Johnson tile, explain technical specs, and guide you on tile selection!"
     elif "girlfriend" in query:
         response = "Haha 😄 I’m fully committed to tiles — no time for romance!"
     elif "born" in query or "built" in query:
-        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>, under <b>Rohit Chintawar</b>."
+        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>, who works under <b>Rohit Chintawar</b> in the Digital Team."
     elif "creator" in query or "who made you" in query:
-        response = "I was proudly built by <b>Arunkumar Gond</b> and the <b>Digital Team</b> at H&R Johnson. 🙌"
+        response = "I was proudly built by <b>Arunkumar Gond</b> and the amazing <b>Digital Team</b> under <b>Rohit Chintawar</b> at H&R Johnson. 🙌"
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
@@ -128,21 +142,3 @@ if prompt:
     st.session_state.chat_history.append({"role": "assistant", "content": response})
     with st.chat_message("assistant"):
         st.markdown(response, unsafe_allow_html=True)
-
-    # === SUGGESTIONS BASED ON INPUT ===
-    suggestions = []
-    if any(word in query for word in ["bathroom", "toilet", "washroom"]):
-        suggestions = ["What size tiles are best for bathroom floors?", "Are slip-resistant tiles available for bathrooms?", "Can I use glossy tiles in bathrooms?"]
-    elif any(word in query for word in ["living", "hall", "drawing"]):
-        suggestions = ["Which Johnson tiles are best for living rooms?", "Do you offer large format tiles for hall areas?", "Can I get warm-toned tiles for my living space?"]
-    elif any(word in query for word in ["kitchen"]):
-        suggestions = ["What kind of tiles are best for kitchen backsplash?", "Are anti-stain tiles available for kitchen floors?", "Which Johnson tiles resist oil and spills?"]
-    elif any(word in query for word in ["buy", "purchase", "dealer"]):
-        suggestions = ["Where can I buy Johnson tiles in Mumbai?", "Is there a House of Johnson nearby?", "Can I order tiles online?"]
-
-    if suggestions:
-        st.markdown("""
-        <div style='background-color:#f0f2f6;padding:10px;border-radius:10px;margin-top:20px;'>
-        <b>💡 Suggested Questions:</b><br>
-        <ul>
-        """ + "".join(f"<li>{s}</li>" for s in suggestions) + "</ul></div>", unsafe_allow_html=True)
