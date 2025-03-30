@@ -144,8 +144,9 @@ if prompt:
 
     response = qa.run(query)
     follow_up_msg = ""
+    buying_intent_detected = user_intends_to_buy(query)
 
-    if user_intends_to_buy(query):
+    if buying_intent_detected:
         loc = extract_city_or_pin(query)
         if loc:
             dealer_info = get_dealers(loc)
@@ -180,7 +181,7 @@ if prompt:
     with st.chat_message("assistant"):
         st.markdown(response, unsafe_allow_html=True)
         if follow_up_msg:
-            st.markdown(f"{follow_up_msg}")
+            st.markdown(follow_up_msg)
             col_yes, col_no = st.columns([1, 1])
             with col_yes:
                 if st.button("✅ Yes", key="yes_followup"):
@@ -217,9 +218,32 @@ if st.session_state.show_suggestions:
     for i, suggestion in enumerate(suggestions):
         if cols[i].button(suggestion, key=f"suggestion_{i}"):
             st.session_state.chat_history.append({"role": "user", "content": suggestion})
-            try:
-                response = qa.run(suggestion)
-            except Exception:
-                response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
+            response = qa.run(suggestion)
+            buying_intent_detected = user_intends_to_buy(suggestion)
+            follow_up_msg = ""
+            if buying_intent_detected:
+                loc = extract_city_or_pin(suggestion)
+                if loc:
+                    dealer_info = get_dealers(loc)
+                    if dealer_info:
+                        response += f"\n\n{dealer_info}"
+                    else:
+                        follow_up_msg = "📍 Would you like me to help you find the nearest dealer? Please share your city or PIN code."
+                        st.session_state.asking_for_dealer = True
+                        st.session_state.show_suggestions = False
+
             st.session_state.chat_history.append({"role": "assistant", "content": response})
+            with st.chat_message("assistant"):
+                st.markdown(response, unsafe_allow_html=True)
+                if follow_up_msg:
+                    st.markdown(follow_up_msg)
+                    col_yes, col_no = st.columns([1, 1])
+                    with col_yes:
+                        if st.button("✅ Yes", key=f"yes_followup_{i}"):
+                            st.session_state.asking_for_dealer = True
+                            st.session_state.show_suggestions = False
+                    with col_no:
+                        if st.button("❌ No", key=f"no_followup_{i}"):
+                            st.session_state.asking_for_dealer = False
+                            st.session_state.show_suggestions = True
             st.rerun()
