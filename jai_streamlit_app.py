@@ -129,6 +129,7 @@ if prompt:
                 found = True
                 break
 
+    # Build response
     if found and not match.empty:
         rows = match.to_dict("records")
         dealer_lines = [
