@@ -109,17 +109,20 @@ if prompt:
 
     # SMART BUY DETECTION
     buy_intents = ["where can i buy", "buy tiles", "find dealer", "get tiles", "supplier", "purchase tiles", "distributor"]
-    if any(term in query.lower() for term in buy_intents):
+    
+if any(term in query.lower() for term in buy_intents):
     user_query = query.lower()
     found = False
     match = None
 
+    # Check for matching PIN code
     for pin in dealer_df["PIN Code"].astype(str):
         if pin in user_query:
             match = dealer_df[dealer_df["PIN Code"].astype(str) == pin]
             found = True
             break
 
+    # If no PIN match, check for city match
     if not found:
         for city in dealer_df["City"].dropna().unique():
             if city.lower() in user_query:
@@ -127,6 +130,7 @@ if prompt:
                 found = True
                 break
 
+    # Build response
     if found and not match.empty:
         rows = match.to_dict("records")
         dealer_lines = [
