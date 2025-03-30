@@ -15,7 +15,17 @@ os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 PDF_PATH = "Johnson-Tile-Guide-2023.pdf"
 IMAGE_FOLDER = "extracted_images"
 
-# === STATIC SUGGESTIONS ===
+# === TILE-TOPIC TO IMAGE PAGE MAP ===
+topic_page_map = {
+    "bathroom": 14,
+    "parking": 22,
+    "cool roof": 30,
+    "swimming pool": 24,
+    "living room": 18,
+    "hospital": 27,
+    "industrial": 25
+}
+
 TILE_SONGS = [
     "🎵 I'm a tile and I shine so bright, step on me, your room's just right!",
     "🎶 Glossy, matte, or slip-resistant too, Johnson Tiles are made for you!",
@@ -52,17 +62,24 @@ def prepare_vectorstore():
     vectorstore = FAISS.from_documents(pdf_docs, embeddings)
     return vectorstore
 
-def get_suggestions(prompt):
-    suggestion_prompt = f"""
-    Based on the user's last message:
 
-    "{prompt}"
-
-    Suggest 3 related questions that a customer might ask next about tiles. Keep the questions concise and helpful.
-    """
-    llm = ChatOpenAI(model_name="gpt-3.5-turbo")
-    resp = llm.invoke(suggestion_prompt)
-    return [q.strip("- ") for q in resp.content.split("\n") if q.strip()]
+def generate_suggestions(user_input):
+    # Rule-based logic for PDF-related suggestions
+    lower = user_input.lower()
+    if "bathroom" in lower:
+        return ["What size tiles are best for bathrooms?", "Are bathroom tiles slip-resistant?", "Glossy or matte for bathroom walls?"]
+    elif "parking" in lower:
+        return ["Which tiles are durable for parking areas?", "Do you have anti-skid parking tiles?", "Best color tiles for parking?"]
+    elif "living room" in lower:
+        return ["Best designs for living room tiles?", "Which finish suits living room flooring?", "Is glossy suitable for living rooms?"]
+    elif "swimming pool" in lower:
+        return ["Tiles suitable for pool decks?", "Are pool tiles anti-slip?", "Can Johnson tiles be used underwater?"]
+    elif "industrial" in lower:
+        return ["Best tiles for industrial use?", "Can tiles withstand heavy machinery?", "Are Endura tiles chemical resistant?"]
+    elif "cool roof" in lower:
+        return ["How do cool roof tiles work?", "Do they reduce temperature indoors?", "Which tiles for summer heat?"]
+    else:
+        return ["Which tiles are best for outdoors?", "Where can I buy Johnson tiles?", "How do I clean my tiles?"]
 
 # === STREAMLIT UI ===
 st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
@@ -78,30 +95,30 @@ qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(model_name="gpt-3.5-turbo"), cha
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
-if "suggestions" not in st.session_state:
-    st.session_state.suggestions = []
 
-# Display chat history
+if "show_suggestions" not in st.session_state:
+    st.session_state.show_suggestions = False
+
+if "last_input" not in st.session_state:
+    st.session_state.last_input = ""
+
+col1, col2 = st.columns([6, 1])
+with col2:
+    if st.button("🗑️ Clear Chat"):
+        st.session_state.chat_history = []
+        st.session_state.show_suggestions = False
+        st.rerun()
+
 for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"], unsafe_allow_html=True)
 
-# Process suggestion click
-clicked_question = None
-if st.session_state.suggestions:
-    st.markdown("##### 🔍 Suggested Questions:")
-    cols = st.columns(len(st.session_state.suggestions))
-    for i, suggestion in enumerate(st.session_state.suggestions):
-        if cols[i].button(suggestion, key=f"sugbtn_{i}"):
-            clicked_question = suggestion
+prompt = st.chat_input("Ask me anything about tiles ...")
 
-# Prompt input
-user_prompt = st.chat_input("Ask me anything about tiles ...")
-if user_prompt or clicked_question:
-    prompt = clicked_question if clicked_question else user_prompt
+if prompt:
     st.session_state.chat_history.append({"role": "user", "content": prompt})
-
     query = prompt.lower()
+
     if query in ["hi", "hello", "hi jai", "hello jai"]:
         response = "Hello! I'm JAI 😊 — happy to help you with tile advice. What would you like to know?"
     elif "your name" in query:
@@ -111,13 +128,13 @@ if user_prompt or clicked_question:
     elif "how are you" in query:
         response = "I'm all tiled up and ready to assist you! 😄 What can I help you with today?"
     elif "what can you do" in query:
-        response = "I can help you choose the right Johnson tile, explain technical specs, and much more!"
+        response = "I can help you choose the right Johnson tile, explain technical specs, and suggest suitable tiles for every space!"
     elif "girlfriend" in query:
         response = "Haha 😄 I’m fully committed to tiles — no time for romance!"
     elif "born" in query or "built" in query:
-        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>."
+        response = "I was born in the <b>H&R Johnson office in Mumbai</b>! Built with ❤️ by <b>Arunkumar Gond</b>, who works under <b>Rohit Chintawar</b> in the Digital Team."
     elif "creator" in query or "who made you" in query:
-        response = "I was proudly built by <b>Arunkumar Gond</b> and the Digital Team at H&R Johnson. 🙌"
+        response = "I was proudly built by <b>Arunkumar Gond</b> and the amazing <b>Digital Team</b> under <b>Rohit Chintawar</b> at H&R Johnson. 🙌"
     elif "sing" in query and "song" in query:
         response = random.choice(TILE_SONGS)
     else:
@@ -126,12 +143,32 @@ if user_prompt or clicked_question:
         except Exception:
             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
+        for topic, page in topic_page_map.items():
+            if topic in query:
+                for file in os.listdir(IMAGE_FOLDER):
+                    if file.startswith(f"page_{page}_img"):
+                        st.image(os.path.join(IMAGE_FOLDER, file), caption=f"Example of {topic.title()} Tile")
+                        break
+                break
+
     st.session_state.chat_history.append({"role": "assistant", "content": response})
     with st.chat_message("assistant"):
         st.markdown(response, unsafe_allow_html=True)
 
-    # Update suggestions based on latest input
-    try:
-        st.session_state.suggestions = get_suggestions(prompt)
-    except:
-        st.session_state.suggestions = []
+    st.session_state.last_input = prompt
+    st.session_state.show_suggestions = True
+
+# === SUGGESTIONS ===
+if st.session_state.show_suggestions:
+    suggestions = generate_suggestions(st.session_state.last_input)
+    st.markdown("##### 🔍 Suggested Questions:")
+    cols = st.columns(len(suggestions))
+    for i, suggestion in enumerate(suggestions):
+        if cols[i].button(suggestion, key=f"suggestion_{i}"):
+            st.session_state.chat_history.append({"role": "user", "content": suggestion})
+            try:
+                response = qa.run(suggestion)
+            except Exception:
+                response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
+            st.session_state.chat_history.append({"role": "assistant", "content": response})
+            st.rerun()
