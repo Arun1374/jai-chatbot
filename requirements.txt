@@ -10,3 +10,4 @@ pillow
 pandas
 openpyxl
 langchain-community
+utils
