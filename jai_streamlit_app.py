@@ -13,7 +13,6 @@ from langchain.memory import ConversationBufferMemory
 # === CONFIGURATION ===
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 PDF_PATH = "Johnson-Tile-Guide-2023-Final-Complete-With-Tables.pdf"
-IMAGE_FOLDER = "extracted_images"
 
 # === PREPARE VECTORSTORE ===
 @st.cache_resource
@@ -44,7 +43,11 @@ def find_dealer(city: str) -> str:
     top_rows = result.head(3).to_dict(orient="records")
     response = ""
     for row in top_rows:
-        response += f"\n<b>{row['Dealer Name']}</b><br>📍 {row['Address']}, {row['City']}, {row['State']} - {row['PIN Code']}<br>📞 {row['Contact']} | ✉️ {row['E_MAIL']}<br><br>"
+        response += f"""
+<b>{row['Dealer Name']}</b><br>
+📍 {row['Address']}, {row['City']}, {row['State']} - {row['PIN Code']}<br>
+📞 {row['Contact']} | ✉️ {row['E_MAIL']}<br><br>
+"""
     return response
 
 @tool
