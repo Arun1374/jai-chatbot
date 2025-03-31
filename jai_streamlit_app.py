@@ -148,5 +148,5 @@ if st.session_state.show_suggestions:
     cols = st.columns(len(suggestions))
     for i, suggestion in enumerate(suggestions):
         with cols[i]:
-            if st.button(suggestion
+            if
 ::contentReference[oaicite:2]{index=2}
