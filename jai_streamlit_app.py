@@ -148,5 +148,18 @@ if st.session_state.show_suggestions:
     cols = st.columns(len(suggestions))
     for i, suggestion in enumerate(suggestions):
         with cols[i]:
-            if
-::contentReference[oaicite:2]{index=2}
+            if st.button(suggestion, key=f"suggestion_{i}"):
+                st.session_state.chat_history.append({"role": "user", "content": suggestion})
+                with st.spinner("JAI is typing..."):
+                    try:
+                        response = agent.run(suggestion)
+                    except Exception:
+                        response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
+                st.session_state.chat_history.append({"role": "assistant", "content": response})
+                st.rerun()
+
+# === FEEDBACK SECTION ===
+with st.expander("💬 Give Feedback"):
+    feedback = st.text_area("Your feedback:")
+    if st.button("Submit Feedback"):
+        st.success("✅ Thanks! Your feedback has been recorded.")
