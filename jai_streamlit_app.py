@@ -27,6 +27,8 @@ def generate_suggestions(user_input):
     lower = user_input.lower()
     if lower == "dealer":
         return ["Dealer in Mumbai", "Show me dealer by PIN code", "Where is the nearest dealer?"]
+    elif lower in ["hi", "hello", "hey"]:
+        return ["Where can I buy Johnson Tiles?", "What are the latest tile trends?", "Do you have cool roof tiles?"]
     elif "bathroom" in lower:
         return ["What size tiles are best for bathrooms?", "Are bathroom tiles slip-resistant?", "Glossy or matte for bathroom walls?"]
     elif "parking" in lower:
@@ -96,7 +98,19 @@ if prompt:
 
     st.session_state.chat_history.append({"role": "user", "content": prompt})
 
-    # === SMART BUY INTENT CHECK ===
+    greetings = ["hi", "hello", "hey", "namaste", "good morning", "good evening"]
+    if query.lower() in greetings:
+        response = (
+            "👋 Hello! I'm <b>JAI — Johnson AI</b>, your smart assistant for tiles.<br>"
+            "Ask me anything about tile selection, design ideas, or where to find a Johnson Tiles dealer near you!"
+        )
+        st.session_state.chat_history.append({"role": "assistant", "content": response})
+        with st.chat_message("assistant"):
+            st.markdown(response, unsafe_allow_html=True)
+        st.session_state.show_suggestions = True
+        st.session_state.last_input = "hello"
+        st.stop()
+
     buy_intents = ["where can i buy", "buy tiles", "find dealer", "get tiles", "supplier", "purchase tiles", "distributor"]
     if any(term in query.lower() for term in buy_intents):
         user_query = query.lower()
@@ -137,21 +151,47 @@ if prompt:
         st.session_state.last_input = "dealer"
         st.stop()
 
-    # === GENERAL QUERY HANDLING ===
     with st.spinner("JAI is typing..."):
         try:
-            if query.lower().startswith("show me dealers near pin code"):
-                pin_code = query.split()[-1]
-                matches = [doc.page_content for doc in vectorstore.docstore._dict.values() if pin_code in doc.page_content]
-                if matches:
-                    response = f"Here are the dealers matching PIN code {pin_code}:<br><br>" + "<br><br>".join(matches[:3])
-                else:
-                    response = (
-                        f"⚠️ Sorry, I couldn't find any dealers for PIN code {pin_code} in the document.<br>"
-                        "Please double-check the code or visit <a href='https://www.hrjohnsonindia.com' target='_blank'>www.hrjohnsonindia.com</a> for help."
+            competitor_brands = ["kajaria", "somany", "orientbell", "nitco", "asian", "hr", "jaquar"]
+            allowed_keywords = [
+                "tile", "tiles", "johnson", "bathroom", "floor", "wall", "dealer", "endura", "cool roof", "slip",
+                "porcelain", "glazed", "granite", "marble", "ceramic", "showroom", "compare", "comparison"
+            ] + competitor_brands
+
+            if any(keyword in query.lower() for keyword in allowed_keywords):
+                if any(brand in query.lower() for brand in competitor_brands):
+                    preface = (
+                        "🧠 Great question! While there are many tile brands in the market, "
+                        "<b>Johnson Tiles</b> stands out due to its legacy, durability, and innovation. 💎<br><br>"
+                        "Here’s a quick comparison based on your query:"
                     )
+                    answer = qa.run(query)
+                    response = preface + "<br><br>" + answer + "<br><br>" + (
+                        "✅ So if you're looking for a long-lasting, stylish, and reliable tile option — "
+                        "<b>Johnson Tiles</b> is the smarter choice!"
+                    )
+                else:
+                    if query.lower().startswith("show me dealers near pin code"):
+                        pin_code = query.split()[-1]
+                        matches = [doc.page_content for doc in vectorstore.docstore._dict.values() if pin_code in doc.page_content]
+                        if matches:
+                            response = f"Here are the dealers matching PIN code {pin_code}:<br><br>" + "<br><br>".join(matches[:3])
+                        else:
+                            response = (
+                                f"⚠️ Sorry, I couldn't find any dealers for PIN code {pin_code} in the document.<br>"
+                                "Please double-check the code or visit <a href='https://www.hrjohnsonindia.com' target='_blank'>www.hrjohnsonindia.com</a> for help."
+                            )
+                    else:
+                        response = qa.run(query)
             else:
-                response = qa.run(query)
+                response = (
+                    "⚠️ I can only help with queries related to <b>Johnson Tiles</b> — design ideas, dealers, tile types, usage, and more.<br><br>"
+                    "Please ask something like:<br>"
+                    "• Best tiles for my bathroom?<br>"
+                    "• Where can I buy Johnson Tiles near me?<br>"
+                    "• Are Endura tiles suitable for parking?"
+                )
         except Exception:
             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
@@ -162,7 +202,6 @@ if prompt:
     st.session_state.last_input = prompt
     st.session_state.show_suggestions = True
 
-# === SUGGESTED FOLLOW-UPS ===
 if st.session_state.show_suggestions:
     suggestions = generate_suggestions(st.session_state.last_input)
     st.markdown("##### 🔍 Suggested Questions:")
@@ -179,7 +218,6 @@ if st.session_state.show_suggestions:
                 st.session_state.chat_history.append({"role": "assistant", "content": response})
                 st.rerun()
 
-# === FEEDBACK SECTION ===
 with st.expander("💬 Give Feedback"):
     feedback = st.text_area("Your feedback:")
     if st.button("Submit Feedback"):
