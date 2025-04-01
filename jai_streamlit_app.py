@@ -34,6 +34,8 @@ tile_keywords = [
     "purchase", "cool roof", "kitchen", "ceramic", "porcelain", "swimming pool"
 ]
 
+other_brands = ["kajaria", "somany", "nitco", "orientbell", "asian granito", "hindware", "vora", "hrg"]
+
 def is_tile_related(query):
     return any(keyword in query.lower() for keyword in tile_keywords)
 
@@ -161,6 +163,12 @@ if prompt:
                     "🤖 I'm trained to assist only with <b>Johnson Tiles</b> related queries.<br><br>"
                     "Please ask me about tile types, uses, dealers, or anything found in our official tile guide."
                 )
+            elif any(brand in query.lower() for brand in other_brands):
+                response = (
+                    "🏆 Great question! While there are many tile brands in the market, <b>Johnson Tiles</b> stands out with over 60+ years of trust, innovation, and unmatched quality.<br><br>"
+                    "From cool roof tiles to industrial-grade Endura options, Johnson Tiles delivers performance, design, and durability — all in one.<br><br>"
+                    "✅ Choose Johnson — the prime name in the tile industry."
+                )
             elif query.lower().startswith("show me dealers near pin code"):
                 pin_code = query.split()[-1]
                 matches = [doc.page_content for doc in vectorstore.docstore._dict.values() if pin_code in doc.page_content]
@@ -198,6 +206,11 @@ if st.session_state.show_suggestions:
                             response = (
                                 "🤖 I'm trained to assist only with <b>Johnson Tiles</b> related queries.<br><br>"
                                 "Please ask me about tile types, uses, dealers, or anything found in our official tile guide."
+                            )
+                        elif any(brand in suggestion.lower() for brand in other_brands):
+                            response = (
+                                "🏆 Among brands like Kajaria or Somany, <b>Johnson Tiles</b> remains a trusted leader in innovation, quality, and design versatility.<br><br>"
+                                "Choose Johnson — the prime choice in the world of tiles."
                             )
                         else:
                             response = qa.run(suggestion)
