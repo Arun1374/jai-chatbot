@@ -12,3 +12,4 @@ unstructured
 pdfminer.six
 tqdm
 python-dotenv
+openpyxl>=3.0.0
