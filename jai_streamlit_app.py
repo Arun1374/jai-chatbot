@@ -217,8 +217,3 @@ if st.session_state.show_suggestions:
                         response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
                 st.session_state.chat_history.append({"role": "assistant", "content": response})
                 st.rerun()
-
-with st.expander("💬 Give Feedback"):
-    feedback = st.text_area("Your feedback:")
-    if st.button("Submit Feedback"):
-        st.success("✅ Thanks! Your feedback has been recorded.")
