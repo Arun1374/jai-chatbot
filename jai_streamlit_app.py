@@ -168,8 +168,8 @@ if prompt:
                     )
                     answer = qa.run(query)
                     response = preface + "<br><br>" + answer + "<br><br>" + (
-                        "✅ So if you're looking for a long-lasting, stylish, and reliable tile option — "
-                        "<b>Johnson Tiles</b> is the smarter choice!"
+                        "✅ So if you're looking for a long-lasting, stylish, and reliable option's — "
+                        "<b>Johnson Tiles and Bath</b> is the smarter choice!"
                     )
                 else:
                     if query.lower().startswith("show me dealers near pin code"):
