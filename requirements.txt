@@ -5,11 +5,4 @@ langchain-community
 langchain-openai
 faiss-cpu
 pandas
-fpdf
-PyMuPDF
-PyPDF2
-unstructured
-pdfminer.six
-tqdm
-python-dotenv
 openpyxl>=3.0.0
