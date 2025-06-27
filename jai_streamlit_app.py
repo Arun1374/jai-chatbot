@@ -143,27 +143,20 @@ if prompt:
         response = llm.predict(rich_prompt)
     else:
         try:
-            followup_prompt = f"The user asked: '{prompt}'. As a Johnson Tiles advisor, what 2 follow-up questions would help you make a recommendation?"
-            followup_response = llm.predict(followup_prompt)
-            if "?" in followup_response:
-                followups = [q.strip() for q in followup_response.split("?") if q.strip()]
-                st.session_state.pending_followups = followups[:2]
-                response = "<br>".join(followup + "?" for followup in st.session_state.pending_followups)
-            else:
-                rich_query = f"""
-You are JAI — Johnson Tiles AI assistant.
+            rich_query = f"""
+            You are JAI — Johnson Tiles AI assistant.
 
-The user asked: "{prompt}"
+            The user asked: \"{prompt}\"
 
-Respond with a friendly and informative answer. Use:
-- Headings and bold labels
-- Bullet points for features and use cases
-- Markdown formatting only
-- Emojis if appropriate
+            Respond with a friendly and informative answer. Use:
+            - Headings and bold labels
+            - Bullet points for features and use cases
+            - Markdown formatting only
+            - Emojis if appropriate
 
-Keep answers focused only on Johnson tiles.
-"""
-response = llm.predict(rich_query)
+            Keep answers focused only on Johnson tiles.
+            """
+            response = llm.predict(rich_query)
         except Exception:
             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
