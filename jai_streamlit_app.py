@@ -125,7 +125,22 @@ if prompt:
         last_question = st.session_state.pending_followups.pop(0)
         st.session_state.user_context[last_question] = prompt
         followup_query = "".join([f"{k}: {v}, " for k, v in st.session_state.user_context.items()])
-        response = qa_chain.run(f"User details: {followup_query}. Recommend tiles.")
+        rich_prompt = f"""
+You are JAI — Johnson Tiles AI assistant.
+
+User details: {followup_query}
+
+Based on this, suggest the best Johnson tiles with the following format:
+- Start with a friendly response
+- Use headings and bold labels (e.g., **Recommended Tile:**)
+- Include bullet points for features or use cases
+- Insert line breaks for readability
+- Answer in a warm, helpful tone
+- Add emoji where appropriate (✅ 💡 🧱)
+
+Return ONLY in Markdown.
+"""
+response = llm.predict(rich_prompt)
     else:
         try:
             followup_prompt = f"The user asked: '{prompt}'. As a Johnson Tiles advisor, what 2 follow-up questions would help you make a recommendation?"
@@ -135,7 +150,20 @@ if prompt:
                 st.session_state.pending_followups = followups[:2]
                 response = "<br>".join(followup + "?" for followup in st.session_state.pending_followups)
             else:
-                response = qa_chain.run(prompt)
+                rich_query = f"""
+You are JAI — Johnson Tiles AI assistant.
+
+The user asked: "{prompt}"
+
+Respond with a friendly and informative answer. Use:
+- Headings and bold labels
+- Bullet points for features and use cases
+- Markdown formatting only
+- Emojis if appropriate
+
+Keep answers focused only on Johnson tiles.
+"""
+response = llm.predict(rich_query)
         except Exception:
             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
