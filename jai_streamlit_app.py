@@ -78,6 +78,7 @@ qa_chain = ConversationalRetrievalChain.from_llm(
     retriever=vectorstore.as_retriever(),
     memory=memory
 )
+llm = ChatOpenAI(model_name="gpt-4-1106-preview")
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -87,11 +88,14 @@ if "last_input" not in st.session_state:
     st.session_state.last_input = ""
 if "show_suggestions" not in st.session_state:
     st.session_state.show_suggestions = False
+if "pending_followups" not in st.session_state:
+    st.session_state.pending_followups = []
 
 if st.button("🗑️ Clear Chat"):
     st.session_state.chat_history = []
     st.session_state.user_context = {}
     st.session_state.show_suggestions = False
+    st.session_state.pending_followups = []
     st.rerun()
 
 for msg in st.session_state.chat_history:
@@ -117,21 +121,19 @@ if prompt:
             "• Where can I find a Johnson Tiles dealer near me?<br>"
             "• Tell me about Endura tiles for industrial use."
         )
+    elif st.session_state.pending_followups:
+        last_question = st.session_state.pending_followups.pop(0)
+        st.session_state.user_context[last_question] = prompt
+        followup_query = "".join([f"{k}: {v}, " for k, v in st.session_state.user_context.items()])
+        response = qa_chain.run(f"User details: {followup_query}. Recommend tiles.")
     else:
         try:
-            if any(kw in prompt.lower() for kw in ["bathroom", "kitchen", "living room", "parking", "industrial"]):
-                if "room_type" not in st.session_state.user_context:
-                    st.session_state.user_context["room_type"] = prompt
-                    response = "Got it! Is this for the floor or wall?"
-                elif "area_type" not in st.session_state.user_context:
-                    st.session_state.user_context["area_type"] = prompt
-                    response = "Understood. Do you prefer a matte or glossy finish?"
-                elif "finish" not in st.session_state.user_context:
-                    st.session_state.user_context["finish"] = prompt
-                    final_query = f"Suggest {st.session_state.user_context['finish']} tiles for {st.session_state.user_context['area_type']} in {st.session_state.user_context['room_type']}"
-                    response = qa_chain.run(final_query)
-                else:
-                    response = qa_chain.run(prompt)
+            followup_prompt = f"The user asked: '{prompt}'. As a Johnson Tiles advisor, what 2 follow-up questions would help you make a recommendation?"
+            followup_response = llm.predict(followup_prompt)
+            if "?" in followup_response:
+                followups = [q.strip() for q in followup_response.split("?") if q.strip()]
+                st.session_state.pending_followups = followups[:2]
+                response = "<br>".join(followup + "?" for followup in st.session_state.pending_followups)
             else:
                 response = qa_chain.run(prompt)
         except Exception:
