@@ -1,6 +1,4 @@
 import os
-import random
-import base64
 import streamlit as st
 import pandas as pd
 import json
@@ -44,11 +42,7 @@ def prepare_vectorstore():
 
 def generate_suggestions(user_input):
     lower = user_input.lower()
-    if lower == "dealer":
-        return ["Dealer in Mumbai", "Show me dealer by PIN code", "Where is the nearest dealer?"]
-    elif lower in ["hi", "hello", "hey"]:
-        return ["Where can I buy Johnson Tiles?", "What are the latest tile trends?", "Do you have cool roof tiles?"]
-    elif "bathroom" in lower:
+    if "bathroom" in lower:
         return ["What size tiles are best for bathrooms?", "Are bathroom tiles slip-resistant?", "Glossy or matte for bathroom walls?"]
     elif "parking" in lower:
         return ["Which tiles are durable for parking areas?", "Do you have anti-skid parking tiles?", "Best color tiles for parking?"]
@@ -62,11 +56,11 @@ def generate_suggestions(user_input):
         return ["How do cool roof tiles work?", "Do they reduce temperature indoors?", "Which tiles for summer heat?"]
     else:
         return [
-            "Which tiles are best for outdoors?",
+            "Which Johnson tiles are best for outdoors?",
             "Where can I buy Johnson tiles?",
-            "How do I clean my tiles?",
-            "Which finish is better for hall flooring?",
-            "Do you have eco-friendly tiles?"
+            "How do I clean my Johnson tiles?",
+            "Do you have eco-friendly Johnson tiles?",
+            "Best tiles from Johnson for a modern kitchen?"
         ]
 
 # === STREAMLIT UI ===
@@ -87,13 +81,10 @@ qa_chain = ConversationalRetrievalChain.from_llm(
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
-
 if "user_context" not in st.session_state:
     st.session_state.user_context = {}
-
 if "last_input" not in st.session_state:
     st.session_state.last_input = ""
-
 if "show_suggestions" not in st.session_state:
     st.session_state.show_suggestions = False
 
@@ -107,26 +98,42 @@ for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"], unsafe_allow_html=True)
 
-prompt = st.chat_input("Ask me anything about tiles or tell me your requirement...")
+prompt = st.chat_input("Ask me anything about Johnson tiles or share your requirement...")
 
 if prompt:
     st.session_state.chat_history.append({"role": "user", "content": prompt})
 
-    # === Smart Sales Agent Logic ===
-    if any(kw in prompt.lower() for kw in ["bathroom", "kitchen", "living room", "parking", "industrial"]):
-        if "room_type" not in st.session_state.user_context:
-            st.session_state.user_context["room_type"] = prompt
-            response = "Got it! Is this for the floor or wall?"
-        elif "area_type" not in st.session_state.user_context:
-            st.session_state.user_context["area_type"] = prompt
-            response = "Understood. Do you prefer a matte or glossy finish?"
-        elif "finish" not in st.session_state.user_context:
-            st.session_state.user_context["finish"] = prompt
-            final_query = f"Suggest {st.session_state.user_context['finish']} tiles for {st.session_state.user_context['area_type']} in {st.session_state.user_context['room_type']}"
-            response = qa_chain.run(final_query)
+    allowed_keywords = [
+        "johnson", "tiles", "endura", "marbonite", "porselano", "dealer", "showroom",
+        "cool roof", "parking", "bathroom", "floor", "wall", "tactile", "industrial",
+        "anti-skid", "ceramic", "glazed", "tile selection"
+    ]
+
+    if not any(word in prompt.lower() for word in allowed_keywords):
+        response = (
+            "⚠️ I can only assist with queries related to <b>Johnson Tiles</b>, including product details, design help, or dealer locations.<br><br>"
+            "Please ask something like:<br>"
+            "• What are the best tiles for bathrooms?<br>"
+            "• Where can I find a Johnson Tiles dealer near me?<br>"
+            "• Tell me about Endura tiles for industrial use."
+        )
     else:
         try:
-            response = qa_chain.run(prompt)
+            if any(kw in prompt.lower() for kw in ["bathroom", "kitchen", "living room", "parking", "industrial"]):
+                if "room_type" not in st.session_state.user_context:
+                    st.session_state.user_context["room_type"] = prompt
+                    response = "Got it! Is this for the floor or wall?"
+                elif "area_type" not in st.session_state.user_context:
+                    st.session_state.user_context["area_type"] = prompt
+                    response = "Understood. Do you prefer a matte or glossy finish?"
+                elif "finish" not in st.session_state.user_context:
+                    st.session_state.user_context["finish"] = prompt
+                    final_query = f"Suggest {st.session_state.user_context['finish']} tiles for {st.session_state.user_context['area_type']} in {st.session_state.user_context['room_type']}"
+                    response = qa_chain.run(final_query)
+                else:
+                    response = qa_chain.run(prompt)
+            else:
+                response = qa_chain.run(prompt)
         except Exception:
             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
