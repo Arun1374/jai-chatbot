@@ -3,25 +3,44 @@ import random
 import base64
 import streamlit as st
 import pandas as pd
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_community.vectorstores import FAISS
-from langchain.text_splitter import CharacterTextSplitter
-from langchain_community.document_loaders import PyPDFLoader
-from langchain.chains import RetrievalQA
+import json
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.vectorstores import FAISS
+from langchain.schema import Document
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.chains import ConversationalRetrievalChain
+from langchain.memory import ConversationBufferMemory
+from langchain_openai import ChatOpenAI
 
 # === CONFIGURATION ===
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-PDF_PATH = "Johnson-Tile-Guide-2023-Final-Complete-With-Tables.pdf"
-IMAGE_FOLDER = "extracted_images"
+JSON_PATH = "johnson_tiles_master_data_cleaned.json"
 
 @st.cache_resource
 def prepare_vectorstore():
-    loader = PyPDFLoader(PDF_PATH)
-    documents = loader.load()
-    splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    pdf_docs = splitter.split_documents(documents)
+    with open(JSON_PATH, "r") as f:
+        json_data = json.load(f)
+
+    def flatten_json_to_docs(json_obj, parent_key=""):
+        docs = []
+        if isinstance(json_obj, dict):
+            for k, v in json_obj.items():
+                new_key = f"{parent_key}.{k}" if parent_key else k
+                docs.extend(flatten_json_to_docs(v, new_key))
+        elif isinstance(json_obj, list):
+            for i, item in enumerate(json_obj):
+                new_key = f"{parent_key}[{i}]"
+                docs.extend(flatten_json_to_docs(item, new_key))
+        else:
+            flat_text = f"{parent_key.replace('.', ' > ')}: {json_obj}"
+            docs.append(Document(page_content=flat_text))
+        return docs
+
+    flat_docs = flatten_json_to_docs(json_data)
+    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    split_docs = splitter.split_documents(flat_docs)
     embeddings = OpenAIEmbeddings(model="text-embedding-ada-002")
-    return FAISS.from_documents(pdf_docs, embeddings)
+    return FAISS.from_documents(split_docs, embeddings)
 
 def generate_suggestions(user_input):
     lower = user_input.lower()
@@ -42,156 +61,72 @@ def generate_suggestions(user_input):
     elif "cool roof" in lower:
         return ["How do cool roof tiles work?", "Do they reduce temperature indoors?", "Which tiles for summer heat?"]
     else:
-        return ["Which tiles are best for outdoors?", "Where can I buy Johnson tiles?", "How do I clean my tiles?"]
-
-def image_to_base64(image_path):
-    with open(image_path, "rb") as img_file:
-        return base64.b64encode(img_file.read()).decode()
+        return [
+            "Which tiles are best for outdoors?",
+            "Where can I buy Johnson tiles?",
+            "How do I clean my tiles?",
+            "Which finish is better for hall flooring?",
+            "Do you have eco-friendly tiles?"
+        ]
 
 # === STREAMLIT UI ===
 st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
 st.markdown("""
     <h1 style='text-align: center;'>🤖 JAI — Johnson AI</h1>
-    <p style='text-align: center;'>Your smart assistant for tiles</p>
+    <p style='text-align: center;'>Your smart assistant and tile advisor</p>
     <hr style='border:1px solid #ddd;'>
 """, unsafe_allow_html=True)
 
 vectorstore = prepare_vectorstore()
-dealer_df = pd.read_excel("Johnson_Dealer_List_Cleaned.xlsx")
-qa = RetrievalQA.from_chain_type(
+memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+qa_chain = ConversationalRetrievalChain.from_llm(
     llm=ChatOpenAI(model_name="gpt-4-1106-preview"),
-    chain_type="stuff",
-    retriever=vectorstore.as_retriever()
+    retriever=vectorstore.as_retriever(),
+    memory=memory
 )
 
-# Session setup
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-if "show_suggestions" not in st.session_state:
-    st.session_state.show_suggestions = False
+if "user_context" not in st.session_state:
+    st.session_state.user_context = {}
 
 if "last_input" not in st.session_state:
     st.session_state.last_input = ""
 
-col1, col2 = st.columns([6, 1])
-with col2:
-    if st.button("🗑️ Clear Chat"):
-        st.session_state.chat_history = []
-        st.session_state.show_suggestions = False
-        st.rerun()
+if "show_suggestions" not in st.session_state:
+    st.session_state.show_suggestions = False
+
+if st.button("🗑️ Clear Chat"):
+    st.session_state.chat_history = []
+    st.session_state.user_context = {}
+    st.session_state.show_suggestions = False
+    st.rerun()
 
 for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"], unsafe_allow_html=True)
 
-prompt = st.chat_input("Ask me anything about tiles ...")
+prompt = st.chat_input("Ask me anything about tiles or tell me your requirement...")
 
 if prompt:
-    query = prompt.strip()
-    if query.isdigit() and len(query) == 6:
-        query = f"Show me dealers near PIN code {query}"
-
-    question_words = ("where", "what", "how", "who", "can", "is", "are", "does", "do", "when", "which", "should", "could", "would")
-    if query.lower().startswith(question_words) and not query.endswith("?"):
-        query += "?"
-
     st.session_state.chat_history.append({"role": "user", "content": prompt})
 
-    greetings = ["hi", "hello", "hey", "namaste", "good morning", "good evening"]
-    if query.lower() in greetings:
-        response = (
-            "👋 Hello! I'm <b>JAI — Johnson AI</b>, your smart assistant for tiles.<br>"
-            "Ask me anything about tile selection, design ideas, or where to find a Johnson Tiles dealer near you!"
-        )
-        st.session_state.chat_history.append({"role": "assistant", "content": response})
-        with st.chat_message("assistant"):
-            st.markdown(response, unsafe_allow_html=True)
-        st.session_state.show_suggestions = True
-        st.session_state.last_input = "hello"
-        st.stop()
-
-    buy_intents = ["where can i buy", "buy tiles", "find dealer", "get tiles", "supplier", "purchase tiles", "distributor"]
-    if any(term in query.lower() for term in buy_intents):
-        user_query = query.lower()
-        found = False
-        match = None
-
-        for pin in dealer_df["PIN Code"].astype(str):
-            if pin in user_query:
-                match = dealer_df[dealer_df["PIN Code"].astype(str) == pin]
-                found = True
-                break
-
-        if not found:
-            for city in dealer_df["City"].dropna().unique():
-                if city.lower() in user_query:
-                    match = dealer_df[dealer_df["City"].str.lower() == city.lower()]
-                    found = True
-                    break
-
-        if found and match is not None and not match.empty:
-            rows = match.to_dict("records")
-            dealer_lines = [
-                f"<b>{r['Dealer Name']}</b><br>📍 {r['Address']}, {r['City']}, {r['State']} - {r['PIN Code']}<br>📞 {r['Contact']} | ✉️ {r['E_MAIL']}"
-                for r in rows[:3]
-            ]
-            response = "<br><br>".join(dealer_lines)
-        else:
-            response = (
-                "You can buy <b>Johnson Tiles</b> through our nationwide dealer network.<br><br>"
-                "🛒 Would you like me to find a dealer for you?<br>"
-                "👉 Please provide your <b>city</b> or <b>PIN code</b> so I can help you locate the nearest dealer."
-            )
-
-        st.session_state.chat_history.append({"role": "assistant", "content": response})
-        with st.chat_message("assistant"):
-            st.markdown(response, unsafe_allow_html=True)
-        st.session_state.show_suggestions = True
-        st.session_state.last_input = "dealer"
-        st.stop()
-
-    with st.spinner("JAI is typing..."):
+    # === Smart Sales Agent Logic ===
+    if any(kw in prompt.lower() for kw in ["bathroom", "kitchen", "living room", "parking", "industrial"]):
+        if "room_type" not in st.session_state.user_context:
+            st.session_state.user_context["room_type"] = prompt
+            response = "Got it! Is this for the floor or wall?"
+        elif "area_type" not in st.session_state.user_context:
+            st.session_state.user_context["area_type"] = prompt
+            response = "Understood. Do you prefer a matte or glossy finish?"
+        elif "finish" not in st.session_state.user_context:
+            st.session_state.user_context["finish"] = prompt
+            final_query = f"Suggest {st.session_state.user_context['finish']} tiles for {st.session_state.user_context['area_type']} in {st.session_state.user_context['room_type']}"
+            response = qa_chain.run(final_query)
+    else:
         try:
-            competitor_brands = ["kajaria", "somany", "orientbell", "nitco", "asian", "hr", "jaquar"]
-            allowed_keywords = [
-                "tile", "tiles", "johnson", "bathroom", "floor", "wall", "dealer", "endura", "cool roof", "slip",
-                "porcelain", "glazed", "granite", "marble", "ceramic", "showroom", "compare", "comparison"
-            ] + competitor_brands
-
-            if any(keyword in query.lower() for keyword in allowed_keywords):
-                if any(brand in query.lower() for brand in competitor_brands):
-                    preface = (
-                        "🧠 Great question! While there are many tile brands in the market, "
-                        "<b>Johnson Tiles</b> stands out due to its legacy, durability, and innovation. 💎<br><br>"
-                        "Here’s a quick comparison based on your query:"
-                    )
-                    answer = qa.run(query)
-                    response = preface + "<br><br>" + answer + "<br><br>" + (
-                        "✅ So if you're looking for a long-lasting, stylish, and reliable option's — "
-                        "<b>Johnson Tiles and Bath</b> is the smarter choice!"
-                    )
-                else:
-                    if query.lower().startswith("show me dealers near pin code"):
-                        pin_code = query.split()[-1]
-                        matches = [doc.page_content for doc in vectorstore.docstore._dict.values() if pin_code in doc.page_content]
-                        if matches:
-                            response = f"Here are the dealers matching PIN code {pin_code}:<br><br>" + "<br><br>".join(matches[:3])
-                        else:
-                            response = (
-                                f"⚠️ Sorry, I couldn't find any dealers for PIN code {pin_code} in the document.<br>"
-                                "Please double-check the code or visit <a href='https://www.hrjohnsonindia.com' target='_blank'>www.hrjohnsonindia.com</a> for help."
-                            )
-                    else:
-                        response = qa.run(query)
-            else:
-                response = (
-                    "⚠️ I can only help with queries related to <b>Johnson Tiles</b> — design ideas, dealers, tile types, usage, and more.<br><br>"
-                    "Please ask something like:<br>"
-                    "• Best tiles for my bathroom?<br>"
-                    "• Where can I buy Johnson Tiles near me?<br>"
-                    "• Are Endura tiles suitable for parking?"
-                )
+            response = qa_chain.run(prompt)
         except Exception:
             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
@@ -204,16 +139,17 @@ if prompt:
 
 if st.session_state.show_suggestions:
     suggestions = generate_suggestions(st.session_state.last_input)
-    st.markdown("##### 🔍 Suggested Questions:")
-    cols = st.columns(len(suggestions))
-    for i, suggestion in enumerate(suggestions):
-        with cols[i]:
-            if st.button(suggestion, key=f"suggestion_{i}"):
-                st.session_state.chat_history.append({"role": "user", "content": suggestion})
-                with st.spinner("JAI is typing..."):
-                    try:
-                        response = qa.run(suggestion)
-                    except Exception:
-                        response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
-                st.session_state.chat_history.append({"role": "assistant", "content": response})
-                st.rerun()
+    if suggestions:
+        st.markdown("##### 🔍 Suggested Questions:")
+        cols = st.columns(min(len(suggestions), 5))
+        for i, suggestion in enumerate(suggestions):
+            with cols[i % len(cols)]:
+                if st.button(suggestion, key=f"suggestion_{i}"):
+                    st.session_state.chat_history.append({"role": "user", "content": suggestion})
+                    with st.spinner("JAI is typing..."):
+                        try:
+                            response = qa_chain.run(suggestion)
+                        except Exception:
+                            response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
+                    st.session_state.chat_history.append({"role": "assistant", "content": response})
+                    st.rerun()
