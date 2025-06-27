@@ -1,0 +1,704 @@
+{
+  "general_info": {
+    "history_and_evolution": "The word \u2018Ceramic\u2019 came from the Greek term \u2018Keramos\u2019, meaning pottery. Ancient Egyptians discovered tiles could be hardened and waterproofed via kiln firing. Mesopotamians added artistic value with terra-cotta and ceramic wall decorations.",
+    "about_hr_johnson": "Established in 1958, H & R Johnson is one of India\u2019s oldest tile manufacturers. Operates 10 plants. Follows ISO norms and modern R&D.",
+    "benefits_of_ceramic_tiles": "Durable, hygienic, fire/water/stain resistant, low maintenance, cost-effective. Better than marble/granite in strength.",
+    "classification": {
+      "glazed_unglazed": "Based on surface glaze and water absorption (WA).",
+      "water_absorption": "Porcelain/Vitrified WA < 0.5%. Good for high-traffic, wet areas.",
+      "pei_rating": "PEI 0 to PEI 5. Higher means more footfall resistance."
+    },
+    "tile_finishes": {
+      "glossy": "Reflective, easy to clean, less slip resistance.",
+      "matte": "Non-reflective, high grip.",
+      "rustic": "Textured, natural stone feel.",
+      "others": "Polished, satin, carving etc."
+    },
+    "quality_grading": {
+      "premium": "ISO-compliant, color-coded packaging.",
+      "commercial_and_economy": "Discounted, may have defects, sold without warranty."
+    },
+    "tile_selection_tips": "Use visualizer tool, match aesthetics with room usage, avoid glossy for wet areas.",
+    "budgeting_and_quantity": "Add 10% extra for cuts/spares. Calculate box-wise based on tile size and area.",
+    "adhesives_and_grouts": "Use Ardex Endura or synthetic adhesives. Use matching grout, spacers.",
+    "tile_layering_importance": "Installation quality affects result. Use skilled labor.",
+    "maintenance": "No acids or steel wool. Use mats, clean spills fast, mop weekly.",
+    "tile_sizes": "From 10.8x10.8 cm to 180x120 cm. Choose size based on room type.",
+    "sustainability": "GreenPro certified. ZLD plants, rainwater harvesting, eco fuels.",
+    "social_initiatives": "Red Ramp Project for accessibility. Tactile tiles for the blind.",
+    "experience_centers": "10,000+ dealers, export to 32+ countries. Customer care: 1800 210 7484.",
+    "iconic_projects": [
+      "Mahakaleshwar Temple, India",
+      "Mysore Palace, India",
+      "Falaknuma Palace, India",
+      "National Portrait Gallery, US",
+      "Bethesda Terrace Arcade, US",
+      "Capital Hill Building, US"
+    ]
+  },
+  "brands": {
+    "johnson_tiles": {
+      "description": "For interior walls and floors. Wide size and design range.",
+      "features": [
+        "Glossy, Matte, Rustic, Satin finishes",
+        "Sizes: 10.8\u00d710.8 cm to 80\u00d7160 cm",
+        "Decorative and functional indoor tiles",
+        "PEI 2\u20134 ratings for various room types"
+      ]
+    },
+    "johnson_porselano": {
+      "description": "Glazed porcelain tiles for luxury spaces.",
+      "features": [
+        "Large format up to 120\u00d7240 cm",
+        "Matt, satin matte, polished finishes with carving",
+        "Used in kitchens, bathrooms, living rooms"
+      ]
+    },
+    "johnson_marbonite": {
+      "description": "Full-body vitrified tiles for commercial durability.",
+      "features": [
+        "Sizes: 60\u00d760, 80\u00d780, 120\u00d760 cm",
+        "Ideal for malls, airports, heavy-use zones"
+      ]
+    },
+    "johnson_bathrooms": {
+      "description": "Germ-free sanitaryware and bathroom fittings.",
+      "features": [
+        "Silver Nano coating for hygiene",
+        "Includes closets, basins, pedestals",
+        "Website: www.johnsonbathrooms.in"
+      ]
+    },
+    "johnson_marble_quartz": {
+      "description": "Engineered marble & quartz surfaces for interiors.",
+      "features": [
+        "Impervious and homogeneous slabs",
+        "Uses: countertops, walls, floors, vanity",
+        "Website: www.johnsonmarblequartz.in"
+      ]
+    },
+    "johnson_endura": {
+      "description": "High-performance technical tiles for industrial, outdoor, and sensitive applications.",
+      "features": [
+        "Parking areas",
+        "Driveways",
+        "Garden pathways",
+        "Corridors",
+        "Firefighting areas",
+        "Porticos",
+        "Terraces",
+        "Commercial areas",
+        "Industrial floors",
+        "Swimming pools",
+        "Staircases",
+        "Server rooms",
+        "Medical centers",
+        "Roof cooling applications"
+      ],
+      "product_categories": {
+        "High Traffic Tiles": {
+          "description": "Heavy-duty tiles used in forklifts, trolley areas, material movement zones, production and maintenance spaces.",
+          "features": [
+            "Available in 12/15/20mm thickness",
+            "High breaking strength (>8000N)",
+            "Mohs hardness > 7",
+            "Abrasion and acid resistance"
+          ],
+          "technical_specifications": {
+            "breaking_strength": "> 8000N",
+            "mohs_hardness": "> 7 (cannot be scratched with metal)",
+            "abrasion_resistance": "Highest, minimal wear",
+            "acid_resistance": "Extremely high, except HFL and derivatives",
+            "skid_resistance": "High traction for forklifts and trolleys"
+          }
+        },
+        "Sandex / Sandex Plus": {
+          "description": "Durable tiles designed for heavy-duty, outdoor, and weather-prone environments.",
+          "features": [
+            "Replaces traditional granite/kota/sandstone",
+            "Suitable for diverse indoor/outdoor applications",
+            "600x600 size available",
+            "Better than stamped/polished concrete floors"
+          ],
+          "technical_specifications": {
+            "tile_type": "600x600 mm heavy-duty outdoor tiles",
+            "comparison": "Outperforms granite, kota, sandstone, and concrete",
+            "durability": "Very high strength for indoor/outdoor use",
+            "installation_advantage": "Mitigates tile breakage from inefficient traditional methods"
+          }
+        },
+        "MaxGrip Tiles": {
+          "description": "Top-of-the-line anti-skid tiles tested under DIN 51130 and DIN 51097.",
+          "features": [
+            "Best in class slip resistance (R10/R11/R12)",
+            "Designed for barefoot/wet/oil-ramp scenarios",
+            "Used in high-risk areas including bathrooms, kitchens, pool perimeters"
+          ],
+          "technical_specifications": {
+            "test_standards": {
+              "DIN_51130": "Oil-wet ramp slip resistance test",
+              "DIN_51097": "Wet barefoot slip resistance (A, B, C rating)"
+            },
+            "applications": [
+              "Pool deck",
+              "Staircases",
+              "Commercial kitchens",
+              "High-slip zones"
+            ],
+            "resistance_rating": "R10/R11/R12"
+          }
+        },
+        "Stepping Stone Tiles": {
+          "description": "Pre-finished tiles for staircases replacing marble/kota.",
+          "features": [
+            "Slip-resistant, factory-finished",
+            "Bull-nose edges with safety treads",
+            "No onsite cutting or polishing needed"
+          ],
+          "technical_specifications": {
+            "design": "Factory-finished with bullnose edge and safety tread",
+            "finish": "Anti-skid, scratch-resistant",
+            "replaces": [
+              "Granite",
+              "Kota",
+              "Marble"
+            ],
+            "advantage": "Standardized QC, ready-to-install, low maintenance"
+          }
+        },
+        "Swimming Pool Tiles": {
+          "description": "Vitrified, low water absorption tiles for pools and water storage.",
+          "features": [
+            "Slip, stain and chemical resistant",
+            "Manufactured per FINA Swiss standards",
+            "Available in Blue, Orient Blue, White, Black",
+            "Includes accessories for curved/cladding surfaces"
+          ],
+          "technical_specifications": {
+            "body_type": "Vitrified with low water absorption",
+            "certification": "Compliant with FINA Swiss standards",
+            "chemical_resistance": "Chlorine and cleaning-agent resistant",
+            "slip_resistance": "Yes",
+            "sizes": "24.7x12.2 cm standard (others vary)",
+            "colors": [
+              "New Blue",
+              "Orient Blue",
+              "White",
+              "Black",
+              "Dark Blue"
+            ]
+          }
+        },
+        "Cool Roof Tiles (SRI)": {
+          "description": "Specially coated tiles that reflect solar radiation to reduce indoor temperatures.",
+          "features": [
+            "Lowers air-conditioning load and saves energy",
+            "Improves building energy efficiency"
+          ],
+          "technical_specifications": {
+            "coating": "Sun-reflective surface",
+            "benefit": "Reduces indoor temperature and AC bills",
+            "application": "Terraces, rooftops",
+            "environmental_impact": "Energy-efficient and eco-friendly"
+          }
+        },
+        "Tactile Tiles": {
+          "description": "Guidance tiles for the visually impaired.",
+          "features": [
+            "Follows ADA, DETR, RNIB standards",
+            "Button and line profiles available",
+            "Durable, color-coded demarcations"
+          ],
+          "technical_specifications": {
+            "standard": [
+              "ADA",
+              "DETR",
+              "RNIB"
+            ],
+            "surface": "Corundum finish for enhanced hardness & slip resistance",
+            "design_features": "Button and line profiles",
+            "dimensions": [
+              "4.5mm",
+              "10mm"
+            ],
+            "color": "Multiple for demarcation",
+            "application": "Metro stations, public walkways, airports"
+          }
+        },
+        "Antistatic Tiles": {
+          "description": "Used in electronics, pharma, and server environments.",
+          "features": [
+            "Conductive (<1 Mohm) & Dissipative (1 Mohm\u20131 GOhm)",
+            "Mitigates static discharge risk",
+            "Prevents explosions/fire"
+          ],
+          "technical_specifications": {
+            "conductive_range": "< 1 Mohm",
+            "dissipative_range": "1 Mohm to 1 GOhm",
+            "static_decay": "< 0.5 sec",
+            "application": [
+              "Server rooms",
+              "Pharma labs",
+              "Data centers"
+            ],
+            "certification": "Patented by H&R Johnson India"
+          }
+        },
+        "Radiation Shielding Tiles": {
+          "description": "Lead-free tiles certified by Atomic Energy Board.",
+          "features": [
+            "Used in hospitals & X-ray rooms",
+            "12mm thick with interlocking design"
+          ],
+          "technical_specifications": {
+            "composition": "Lead-free high-density radiation shielding material",
+            "certification": "Certified by Atomic Energy Regulatory Board",
+            "tile_type": "Interlocking system tiles",
+            "size": "30x30 cm",
+            "thickness": "12 mm",
+            "application": [
+              "Hospitals",
+              "X-ray rooms",
+              "Medical centers"
+            ]
+          }
+        },
+        "Industrial Application Tiles": {
+          "description": "Tiles designed for heavy-duty industrial environments requiring extreme resistance to chemicals, load, and abrasion.",
+          "features": [
+            "Specially formulated for industrial flooring",
+            "High chemical resistance",
+            "Exceptional mechanical strength",
+            "Easy to clean and maintain"
+          ],
+          "technical_specifications": {
+            "thickness": "12mm / 15mm / 20mm",
+            "abrasion_resistance": "Very High",
+            "acid_alkali_resistance": "Excellent (except HFL and derivatives)",
+            "breaking_strength": "> 8000 N",
+            "mohs_hardness": "> 7",
+            "recommended_areas": [
+              "Power Plant (Coal Base)",
+              "Bulk Drug Plant",
+              "Brewers Plant",
+              "Textile Plant",
+              "Chemical Plant",
+              "Auto Ancillaries Plant",
+              "Dairy Industry"
+            ]
+          },
+          "application_industries": {
+            "Power Plant Coal Base": {
+              "detailed_applications": [
+                {
+                  "application_scope": "A. Turbine Gas Building (TG)",
+                  "application_usage": "TG Floor - 9 meter height",
+                  "recommended_products": [
+                    "600 x 600 20 mm"
+                  ]
+                },
+                {
+                  "application_scope": "A. Turbine Gas Building (TG)",
+                  "application_usage": "Pedestrian Walk Way",
+                  "recommended_products": [
+                    "600 x 600 20 mm"
+                  ]
+                },
+                {
+                  "application_scope": "A. Turbine Gas Building (TG)",
+                  "application_usage": "Maintenance Bays 0 \u2013 0 meter (AB)",
+                  "recommended_products": [
+                    "200 x 100 20 mm, provided heavy impacts are avoided."
+                  ]
+                },
+                {
+                  "application_scope": "A. Turbine Gas Building (TG)",
+                  "application_usage": "TG Floor 5 meter height walk way",
+                  "recommended_products": [
+                    "600 x 600 20 mm"
+                  ]
+                },
+                {
+                  "application_scope": "B. 0 \u2013 0 meter Switch gear room (B C Bay)",
+                  "application_usage": "Switch gear room",
+                  "recommended_products": [
+                    "Specialized Antistatic tiles 600 x 600 or 300 x 300 15 mm without ESD properties"
+                  ]
+                },
+                {
+                  "application_scope": "C. ESP & Boiler Area",
+                  "application_usage": "General Flooring",
+                  "recommended_products": [
+                    "300 x 300 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "D. Compressor House",
+                  "application_usage": "Heavy duty flooring",
+                  "recommended_products": [
+                    "300 x 300 20 mm"
+                  ]
+                },
+                {
+                  "application_scope": "E. Coal / Lignite Handling Unit",
+                  "application_usage": "General",
+                  "recommended_products": [
+                    "Trimix Flooring"
+                  ]
+                },
+                {
+                  "application_scope": "E. Coal / Lignite Handling Unit",
+                  "application_usage": "Primary Crusher House",
+                  "recommended_products": [
+                    "Trimix Flooring"
+                  ]
+                },
+                {
+                  "application_scope": "E. Coal / Lignite Handling Unit",
+                  "application_usage": "Secondary Crusher House",
+                  "recommended_products": [
+                    "Trimix Flooring"
+                  ]
+                },
+                {
+                  "application_scope": "E. Coal / Lignite Handling Unit",
+                  "application_usage": "Screen House",
+                  "recommended_products": [
+                    "Trimix Flooring"
+                  ]
+                },
+                {
+                  "application_scope": "E. Coal / Lignite Handling Unit",
+                  "application_usage": "Turning Points (TP)",
+                  "recommended_products": [
+                    "Trimix Flooring"
+                  ]
+                },
+                {
+                  "application_scope": "F. Battery Rooms",
+                  "application_usage": "Acid Resistant lining",
+                  "recommended_products": [
+                    "300 x 300 20 mm Plus",
+                    "200 x 100 20 mm"
+                  ]
+                },
+                {
+                  "application_scope": "G. ETP tanks, Neutralization pits, Drain & trenches",
+                  "application_usage": "Acid Resistant lining",
+                  "recommended_products": [
+                    "300 x 300 20 mm Plus",
+                    "200 x 100 20 mm"
+                  ]
+                },
+                {
+                  "application_scope": "H. DM Water Plants & Condensate polishing unit",
+                  "application_usage": "Acid Resistant lining",
+                  "recommended_products": [
+                    "300 x 300 20 mm Plus",
+                    "200 x 100 20 mm"
+                  ]
+                }
+              ]
+            },
+            "Bulk Drug Plant": {
+              "detailed_applications": [
+                {
+                  "application_scope": "Intermediate area reactor",
+                  "application_usage": "Acid resistant heavy duty",
+                  "recommended_products": [
+                    "600 x 600 20 mm",
+                    "600 x 600 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Solvent dispensing area",
+                  "application_usage": "Acid resistant heavy duty",
+                  "recommended_products": [
+                    "600 x 600 20 mm",
+                    "600 x 600 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Centrifuge Area",
+                  "application_usage": "Acid resistant heavy duty",
+                  "recommended_products": [
+                    "600 x 600 20 mm",
+                    "600 x 600 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Vacuum Tray Drier Area",
+                  "application_usage": "Acid resistant",
+                  "recommended_products": [
+                    "300 x 300 15 mm",
+                    "300 x 300 12 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Fluid Bed Drier area",
+                  "application_usage": "Acid resistant",
+                  "recommended_products": [
+                    "300 x 300 15 mm",
+                    "300 x 300 12 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Jet Milling",
+                  "application_usage": "Acid resistant",
+                  "recommended_products": [
+                    "300 x 300 15 mm",
+                    "300 x 300 12 mm"
+                  ]
+                },
+                {
+                  "application_scope": "MCC Panel Room (Machine Control Centre)",
+                  "application_usage": "Antistatic tiles",
+                  "recommended_products": [
+                    "Specialized Antistatic tiles 600 x 600"
+                  ]
+                },
+                {
+                  "application_scope": "ETP tank, Collection Pits, Drain & trenches",
+                  "application_usage": "Acid resistant",
+                  "recommended_products": [
+                    "300 x 300 15 mm",
+                    "200 x 100 20 mm"
+                  ]
+                }
+              ]
+            },
+            "Brewers Plant": {
+              "detailed_applications": [
+                {
+                  "application_scope": "Spent Grain Area",
+                  "application_usage": "Acid resistant heavy duty (truck movement area)",
+                  "recommended_products": [
+                    "300 x 300 20 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Brew House",
+                  "application_usage": "Acid resistant heavy duty",
+                  "recommended_products": [
+                    "300 x 300 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Bottling plant area",
+                  "application_usage": "Acid resistant heavy duty",
+                  "recommended_products": [
+                    "300 x 300 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Packing Area",
+                  "application_usage": "Acid resistant & heavy duty",
+                  "recommended_products": [
+                    "300 x 300 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Ware house & stores",
+                  "application_usage": "Heavy duty flooring",
+                  "recommended_products": [
+                    "300 x 300 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "ETP tank, Collection Pits, Drain & trenches",
+                  "application_usage": "Acid resistant",
+                  "recommended_products": [
+                    "300 x 300 15 mm",
+                    "200 x 100 20 mm"
+                  ]
+                }
+              ]
+            },
+            "Textile Plant": {
+              "detailed_applications": [
+                {
+                  "application_scope": "PSF Plant \u2192 Polyester Staple Fiber",
+                  "application_usage": "Heavy duty flooring",
+                  "recommended_products": [
+                    "300 x 300 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "POY Plant \u2192 partially oriented yarn",
+                  "application_usage": "Heavy duty flooring",
+                  "recommended_products": [
+                    "300 x 300 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Weaving House",
+                  "application_usage": "Heavy duty flooring",
+                  "recommended_products": [
+                    "300 x 300 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Spinning Plant",
+                  "application_usage": "Heavy duty flooring",
+                  "recommended_products": [
+                    "300 x 300 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Knitting Plant",
+                  "application_usage": "Heavy duty flooring",
+                  "recommended_products": [
+                    "300 x 300 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Garment Plant",
+                  "application_usage": "Medium duty flooring",
+                  "recommended_products": [
+                    "600 x 600 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Embroidery Section",
+                  "application_usage": "Medium duty flooring",
+                  "recommended_products": [
+                    "600 x 600 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Process House",
+                  "application_usage": "Acid resistant flooring",
+                  "recommended_products": [
+                    "300 x 300 20 mm",
+                    "300 x 300 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Made up Plant",
+                  "application_usage": "Heavy duty flooring",
+                  "recommended_products": [
+                    "300 x 300 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "ETP, Drain & Trenches",
+                  "application_usage": "Acid resistant flooring",
+                  "recommended_products": [
+                    "300 x 300 15 mm",
+                    "200 x 100 20 mm"
+                  ]
+                }
+              ]
+            },
+            "Chemical Plant": {
+              "detailed_applications": [
+                {
+                  "application_scope": "Process House",
+                  "application_usage": "Acid resistant flooring",
+                  "recommended_products": [
+                    "300 x 300 15 mm",
+                    "300 x 300 12 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Ware House",
+                  "application_usage": "Heavy duty flooring",
+                  "recommended_products": [
+                    "300 x 300 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "ETP, Drain & Trenches",
+                  "application_usage": "Acid resistant flooring",
+                  "recommended_products": [
+                    "300 x 300 15 mm",
+                    "200 x 100 20 mm"
+                  ]
+                }
+              ]
+            },
+            "Auto Ancillaries Plant": {
+              "detailed_applications": [
+                {
+                  "application_scope": "Press Shop",
+                  "application_usage": "Heavy duty flooring",
+                  "recommended_products": [
+                    "Trimix Flooring"
+                  ]
+                },
+                {
+                  "application_scope": "Surface Treatment",
+                  "application_usage": "Acid resistant flooring",
+                  "recommended_products": [
+                    "300 x 300 20 mm",
+                    "300 x 300 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Paint Shop",
+                  "application_usage": "Acid resistant flooring",
+                  "recommended_products": [
+                    "300 x 300 20 mm",
+                    "300 x 300 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Paint Kitchen",
+                  "application_usage": "Antistatic Flooring",
+                  "recommended_products": [
+                    "Antistatic Tile"
+                  ]
+                },
+                {
+                  "application_scope": "Assembly Line",
+                  "application_usage": "Heavy duty flooring",
+                  "recommended_products": [
+                    "300 x 300 20 mm",
+                    "300 x 300 15 mm"
+                  ]
+                }
+              ]
+            },
+            "Dairy Industry": {
+              "detailed_applications": [
+                {
+                  "application_scope": "Milk Reception Area",
+                  "application_usage": "Heavy duty flooring",
+                  "recommended_products": [
+                    "300 x 300 20 mm",
+                    "300 x 300 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Milk Processing Area",
+                  "application_usage": "Acid resistant flooring",
+                  "recommended_products": [
+                    "300 x 300 20 mm",
+                    "300 x 300 15 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Production & Filling Area",
+                  "application_usage": "Acid resistant flooring",
+                  "recommended_products": [
+                    "300 x 300 20 mm",
+                    "300 x 300 15 mm",
+                    "200 x 100 20 mm"
+                  ]
+                },
+                {
+                  "application_scope": "Packing Area & Ware house",
+                  "application_usage": "Heavy duty flooring",
+                  "recommended_products": [
+                    "300 x 300 20 mm",
+                    "300 x 300 15 mm"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
