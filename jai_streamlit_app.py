@@ -2,8 +2,8 @@ import os
 import streamlit as st
 import pandas as pd
 import json
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import FAISS
+from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_community.vectorstores import FAISS
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains import ConversationalRetrievalChain
@@ -64,8 +64,28 @@ def generate_suggestions(user_input):
         ]
 
 # === STREAMLIT UI ===
-st.set_page_config(page_title="JAI - (Johnson Artificial Intelligence)", page_icon="🧱")
+st.set_page_config(
+    page_title="JAI - (Johnson Artificial Intelligence)",
+    page_icon="🧱",
+    layout="centered",
+    initial_sidebar_state="auto"
+)
+
 st.markdown("""
+    <style>
+    body {
+        background-image: url('https://www.hrjohnsonindia.com/images/product/bg_wall_tile.jpg');
+        background-size: cover;
+        background-position: center;
+    }
+    .block-container {
+        background-color: rgba(255, 255, 255, 0.9);
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    </style>
+    <link rel="icon" href="https://www.hrjohnsonindia.com/favicon.ico" type="image/x-icon">
     <h1 style='text-align: center;'>🤖 JAI — Johnson AI</h1>
     <p style='text-align: center;'>Your smart assistant and tile advisor</p>
     <hr style='border:1px solid #ddd;'>
@@ -143,20 +163,7 @@ if prompt:
         response = llm.predict(rich_prompt)
     else:
         try:
-            rich_query = f"""
-            You are JAI — Johnson Tiles AI assistant.
-
-            The user asked: \"{prompt}\"
-
-            Respond with a friendly and informative answer. Use:
-            - Headings and bold labels
-            - Bullet points for features and use cases
-            - Markdown formatting only
-            - Emojis if appropriate
-
-            Keep answers focused only on Johnson tiles.
-            """
-            response = llm.predict(rich_query)
+            response = qa_chain.run(prompt)
         except Exception:
             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
