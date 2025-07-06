@@ -1,7 +1,6 @@
 import os
 import streamlit as st
-import pandas as pd
-import json
+from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.schema import Document
@@ -12,34 +11,21 @@ from langchain_openai import ChatOpenAI
 
 # === CONFIGURATION ===
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-JSON_PATH = "Johnson-Tile-Guide-2023-Final-Complete-With-Tables.pdf.json"
+PDF_PATH = "Johnson-Tile-Guide-2023-Final-Complete-With-Tables.pdf"
 
+# === VECTORSTORE PREPARATION ===
 @st.cache_resource
 def prepare_vectorstore():
-    with open(JSON_PATH, "r") as f:
-        json_data = json.load(f)
+    loader = PyPDFLoader(PDF_PATH)
+    pages = loader.load()
 
-    def flatten_json_to_docs(json_obj, parent_key=""):
-        docs = []
-        if isinstance(json_obj, dict):
-            for k, v in json_obj.items():
-                new_key = f"{parent_key}.{k}" if parent_key else k
-                docs.extend(flatten_json_to_docs(v, new_key))
-        elif isinstance(json_obj, list):
-            for i, item in enumerate(json_obj):
-                new_key = f"{parent_key}[{i}]"
-                docs.extend(flatten_json_to_docs(item, new_key))
-        else:
-            flat_text = f"{parent_key.replace('.', ' > ')}: {json_obj}"
-            docs.append(Document(page_content=flat_text))
-        return docs
-
-    flat_docs = flatten_json_to_docs(json_data)
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    split_docs = splitter.split_documents(flat_docs)
+    split_docs = splitter.split_documents(pages)
+
     embeddings = OpenAIEmbeddings(model="text-embedding-ada-002")
     return FAISS.from_documents(split_docs, embeddings)
 
+# === SMART SUGGESTION GENERATOR ===
 def generate_suggestions(user_input):
     lower = user_input.lower()
     if "bathroom" in lower:
@@ -63,14 +49,8 @@ def generate_suggestions(user_input):
             "Best tiles from Johnson for a modern kitchen?"
         ]
 
-# === STREAMLIT UI ===
-st.set_page_config(
-    page_title="JAI - (Johnson Artificial Intelligence)",
-    page_icon="🧱",
-    layout="centered",
-    initial_sidebar_state="auto"
-)
-
+# === STREAMLIT UI STYLING ===
+st.set_page_config(page_title="JAI - Johnson AI", page_icon="🧱", layout="centered")
 st.markdown("""
     <style>
     body {
@@ -91,6 +71,7 @@ st.markdown("""
     <hr style='border:1px solid #ddd;'>
 """, unsafe_allow_html=True)
 
+# === LOAD VECTORSTORE & CHAIN ===
 vectorstore = prepare_vectorstore()
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 qa_chain = ConversationalRetrievalChain.from_llm(
@@ -100,6 +81,7 @@ qa_chain = ConversationalRetrievalChain.from_llm(
 )
 llm = ChatOpenAI(model_name="gpt-4-1106-preview")
 
+# === SESSION STATE SETUP ===
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "user_context" not in st.session_state:
@@ -111,6 +93,7 @@ if "show_suggestions" not in st.session_state:
 if "pending_followups" not in st.session_state:
     st.session_state.pending_followups = []
 
+# === CLEAR BUTTON ===
 if st.button("🗑️ Clear Chat"):
     st.session_state.chat_history = []
     st.session_state.user_context = {}
@@ -118,10 +101,12 @@ if st.button("🗑️ Clear Chat"):
     st.session_state.pending_followups = []
     st.rerun()
 
+# === DISPLAY CHAT HISTORY ===
 for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"], unsafe_allow_html=True)
 
+# === CHAT INPUT BOX ===
 prompt = st.chat_input("Ask me anything about Johnson tiles or share your requirement...")
 
 if prompt:
@@ -174,6 +159,7 @@ if prompt:
     st.session_state.last_input = prompt
     st.session_state.show_suggestions = True
 
+# === SUGGESTIONS ===
 if st.session_state.show_suggestions:
     suggestions = generate_suggestions(st.session_state.last_input)
     if suggestions:
