@@ -12,7 +12,7 @@ from langchain_openai import ChatOpenAI
 
 # === CONFIGURATION ===
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-JSON_PATH = "johnson_tiles_master_data_cleaned.json"
+JSON_PATH = "Johnson-Tile-Guide-2023-Final-Complete-With-Tables.pdf.json"
 
 @st.cache_resource
 def prepare_vectorstore():
