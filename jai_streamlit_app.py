@@ -3,9 +3,8 @@ import streamlit as st
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains import ConversationalRetrievalChain
+from langchain.schema import Document
 from langchain.memory import ConversationBufferMemory
 from langchain_openai import ChatOpenAI
 
@@ -24,6 +23,32 @@ def prepare_vectorstore():
 
     embeddings = OpenAIEmbeddings(model="text-embedding-ada-002")
     return FAISS.from_documents(split_docs, embeddings)
+
+# === RICH RESPONSE BUILDER ===
+def get_formatted_response(prompt):
+    retrieved_docs = vectorstore.similarity_search(prompt, k=4)
+    combined_context = "\n\n".join([doc.page_content for doc in retrieved_docs])
+
+    rich_prompt = f"""
+You are JAI — Johnson Tiles AI assistant.
+
+Answer the user's question using the following context:
+----------------
+{combined_context}
+----------------
+
+Please reply in a **friendly, markdown-formatted** style with:
+- A clear title or heading
+- **Bold labels** where needed
+- ✅ Bullet points for features or tips
+- 🧱 Emojis for warmth and clarity
+- Line breaks for readability
+- Markdown only (no HTML)
+
+User's question:
+\"{prompt}\"
+"""
+    return llm.predict(rich_prompt)
 
 # === SMART SUGGESTION GENERATOR ===
 def generate_suggestions(user_input):
@@ -49,7 +74,7 @@ def generate_suggestions(user_input):
             "Best tiles from Johnson for a modern kitchen?"
         ]
 
-# === STREAMLIT UI STYLING ===
+# === STREAMLIT UI SETUP ===
 st.set_page_config(page_title="JAI - Johnson AI", page_icon="🧱", layout="centered")
 st.markdown("""
     <style>
@@ -71,17 +96,12 @@ st.markdown("""
     <hr style='border:1px solid #ddd;'>
 """, unsafe_allow_html=True)
 
-# === LOAD VECTORSTORE & CHAIN ===
+# === LOAD MODELS ===
 vectorstore = prepare_vectorstore()
-memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
-qa_chain = ConversationalRetrievalChain.from_llm(
-    llm=ChatOpenAI(model_name="gpt-4-1106-preview"),
-    retriever=vectorstore.as_retriever(),
-    memory=memory
-)
 llm = ChatOpenAI(model_name="gpt-4-1106-preview")
+memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
-# === SESSION STATE SETUP ===
+# === SESSION STATE INITIALIZATION ===
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "user_context" not in st.session_state:
@@ -93,7 +113,7 @@ if "show_suggestions" not in st.session_state:
 if "pending_followups" not in st.session_state:
     st.session_state.pending_followups = []
 
-# === CLEAR BUTTON ===
+# === CLEAR CHAT BUTTON ===
 if st.button("🗑️ Clear Chat"):
     st.session_state.chat_history = []
     st.session_state.user_context = {}
@@ -101,12 +121,12 @@ if st.button("🗑️ Clear Chat"):
     st.session_state.pending_followups = []
     st.rerun()
 
-# === DISPLAY CHAT HISTORY ===
+# === DISPLAY PAST MESSAGES ===
 for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"], unsafe_allow_html=True)
 
-# === CHAT INPUT BOX ===
+# === CHAT INPUT HANDLING ===
 prompt = st.chat_input("Ask me anything about Johnson tiles or share your requirement...")
 
 if prompt:
@@ -130,25 +150,24 @@ if prompt:
         last_question = st.session_state.pending_followups.pop(0)
         st.session_state.user_context[last_question] = prompt
         followup_query = " ".join([f"{k}: {v}" for k, v in st.session_state.user_context.items()])
-        rich_prompt = f"""
-        You are JAI — Johnson Tiles AI assistant.
+        followup_prompt = f"""
+You are JAI — Johnson Tiles AI assistant.
 
-        User details: {followup_query}
+User details: {followup_query}
 
-        Based on this, suggest the best Johnson tiles with the following format:
-        - Start with a friendly response
-        - Use headings and bold labels (e.g., **Recommended Tile:**)
-        - Include bullet points for features or use cases
-        - Insert line breaks for readability
-        - Answer in a warm, helpful tone
-        - Add emoji where appropriate (✅ 💡 🧱)
+Based on this, suggest the best Johnson tiles with:
+- A friendly tone
+- Markdown headings and **bold** labels
+- ✅ Bullet points
+- 🧱 Emojis
+- Clean formatting
 
-        Return ONLY in Markdown.
-        """
-        response = llm.predict(rich_prompt)
+User follow-up: "{prompt}"
+"""
+        response = llm.predict(followup_prompt)
     else:
         try:
-            response = qa_chain.run(prompt)
+            response = get_formatted_response(prompt)
         except Exception:
             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
 
@@ -159,7 +178,7 @@ if prompt:
     st.session_state.last_input = prompt
     st.session_state.show_suggestions = True
 
-# === SUGGESTIONS ===
+# === SHOW SMART SUGGESTIONS ===
 if st.session_state.show_suggestions:
     suggestions = generate_suggestions(st.session_state.last_input)
     if suggestions:
@@ -171,7 +190,7 @@ if st.session_state.show_suggestions:
                     st.session_state.chat_history.append({"role": "user", "content": suggestion})
                     with st.spinner("JAI is typing..."):
                         try:
-                            response = qa_chain.run(suggestion)
+                            response = get_formatted_response(suggestion)
                         except Exception:
                             response = "⚠️ Sorry, I couldn’t understand that. Please ask something related to Johnson Tiles."
                     st.session_state.chat_history.append({"role": "assistant", "content": response})
